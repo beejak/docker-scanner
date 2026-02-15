@@ -17,9 +17,9 @@ If you want to build and run the scanner from source (instead of using the Docke
 
 | OS | Command (run from project root) |
 |----|----------------------------------|
-| **Linux** | `chmod +x scripts/install-deps.sh && ./scripts/install-deps.sh` |
-| **macOS** | `chmod +x scripts/install-deps.sh && ./scripts/install-deps.sh` |
-| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` |
+| **Linux** | `chmod +x scripts/install-deps.sh && ./scripts/install-deps.sh` (runs in background; use `--foreground` to wait) |
+| **macOS** | Same as Linux |
+| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` (runs in background; use `-Foreground` to wait) |
 
 The script installs Go and Trivy if they’re missing (using your package manager or a direct download). When it finishes, you can build and run the scanner. See [Help — What do I need installed?](HELP.md#what-do-i-need-installed) for more detail.
 
@@ -71,9 +71,18 @@ On Windows the binary will be `scanner.exe`. You can also use `go run ./cmd/cli`
 
 ---
 
+## Updating the Trivy database (once a day)
+
+For fresher vulnerability data, update Trivy’s database about once a day:
+
+- **Linux/macOS:** Run `./scripts/update-trivy-db.sh` from the project root. To run daily automatically, add to crontab: `0 3 * * * /full/path/to/docker-scanner/scripts/update-trivy-db.sh`
+- **Windows:** Run `.\scripts\update-trivy-db.ps1`. To run daily, use Task Scheduler and run that script. See [Help — Updating the Trivy database](HELP.md#updating-the-trivy-database-once-a-day).
+
+---
+
 ## Next steps
 
-- **[Help (plain language)](HELP.md)** — What is this? What do the words mean? Baseline and cleanup in simple terms.
+- **[Help (plain language)](HELP.md)** — What is this? PATH, Trivy DB update, drag-and-drop, baseline and cleanup.
 - [CLI reference](cli-reference.md) — All commands and flags.
 - [CI/CD primer](ci-cd-primer.md) — Add the scanner to your pipeline.
 - [Baseline](baseline.md) — Scan many images and get a summary + dashboard.

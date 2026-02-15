@@ -27,7 +27,47 @@ It depends how you want to run the scanner:
 - **Windows (PowerShell):** From the project folder, run:  
   `.\scripts\install-deps.ps1`
 
-The script installs Go and Trivy if they’re missing (using your system’s package manager or a direct download). After it finishes, you can build and run the scanner from source. If you prefer not to install anything, use **Option 1** and only install Docker; then you never need to run the install script.
+The script runs **in the background by default** so you can keep using your terminal. It writes a log file (`install-deps.log` in the project folder). To run it in the foreground and wait for it to finish, use:
+
+- **Linux/macOS:** `./scripts/install-deps.sh --foreground`
+- **Windows:** `.\scripts\install-deps.ps1 -Foreground`
+
+After it finishes, you can build and run the scanner from source. If you prefer not to install anything, use **Option 1** and only install Docker; then you never need to run the install script.
+
+---
+
+## Adding tools to your PATH
+
+If Go or Trivy were installed by the script to a folder under the project (e.g. `.go/go/bin` or `.trivy/...`), they might not be in your **PATH** in new terminals. PATH is the list of folders your system searches when you type a command.
+
+- **Windows:**  
+  - **Temporary (current session):** In PowerShell run  
+    `$env:Path = "C:\path\to\docker-scanner\.go\go\bin;C:\path\to\docker-scanner\.trivy\...;$env:Path"`  
+    (replace with the actual paths the install script printed.)  
+  - **Permanent:** Open **System** → **Advanced system settings** → **Environment Variables**. Under “User variables” or “System variables”, select **Path** → **Edit** → **New**, and add the folder that contains `go.exe` and the folder that contains `trivy.exe`. OK out. New terminals will then find `go` and `trivy`.
+
+- **Linux / macOS:**  
+  Add to your shell config file (e.g. `~/.bashrc` or `~/.zshrc`):  
+  `export PATH="/path/to/docker-scanner/.go/go/bin:/path/to/docker-scanner/.trivy/...:$PATH"`  
+  (use the paths the install script printed.) Then run `source ~/.bashrc` (or open a new terminal).
+
+---
+
+## Updating the Trivy database (once a day)
+
+Trivy uses a **vulnerability database** that is updated regularly. For fresher results, update it about **once a day**:
+
+- **Linux/macOS:** Run `./scripts/update-trivy-db.sh` (from the project root). To run it automatically every day, add a **cron** job:  
+  `0 3 * * * /full/path/to/docker-scanner/scripts/update-trivy-db.sh`  
+  (e.g. run `crontab -e` and add that line; 3:00 AM daily.)
+- **Windows:** Run `.\scripts\update-trivy-db.ps1`. To run it automatically every day, use **Task Scheduler**: create a daily task that runs  
+  `powershell -File "C:\path\to\docker-scanner\scripts\update-trivy-db.ps1"`.
+
+---
+
+## Drag-and-drop: try the web UI
+
+You can **drag and drop** an image reference (or paste it) and get the exact command to run, without typing. Open **`web/index.html`** in your browser (from the project folder). Drop or paste an image name (e.g. `alpine:3.10`), and the page shows the **CLI command** and the **Docker command**; use the **Copy** button to paste into your terminal. No server required—it’s a single HTML file.
 
 ---
 
@@ -88,7 +128,10 @@ Go to [Troubleshooting](troubleshooting.md). There we list common errors, what t
 
 | I want to… | Go here |
 |------------|--------|
-| Install dependencies (one script) | [What do I need installed?](#what-do-i-need-installed) above; [Getting started](getting-started.md) |
+| Install dependencies (one script, runs in background) | [What do I need installed?](#what-do-i-need-installed) above; [Getting started](getting-started.md) |
+| Add Go/Trivy to PATH | [Adding tools to your PATH](#adding-tools-to-your-path) above |
+| Update Trivy DB (e.g. once a day) | [Updating the Trivy database](#updating-the-trivy-database-once-a-day) above |
+| Try drag-and-drop (paste image ref, get command) | [Drag-and-drop: try the web UI](#drag-and-drop-try-the-web-ui) above; open `web/index.html` |
 | Run my first scan | [Getting started](getting-started.md) |
 | Understand every command and option | [CLI reference](cli-reference.md) |
 | Scan a Dockerfile as well as the image | Use `--dockerfile path/to/Dockerfile`; see [CLI reference](cli-reference.md) |

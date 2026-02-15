@@ -8,7 +8,8 @@
 
 **Fix:**
 - Install Trivy: see [Trivy installation](https://trivy.dev/latest/docs/installation/). Example (Linux/macOS): `curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin`
-- Or run the scanner via Docker: `docker run --rm -v $(pwd)/reports:/reports scanner:latest scan --image <ref> --output-dir /reports` (the scanner image includes Trivy).
+- Or run the [install-deps script](getting-started.md#install-dependencies-from-source) for your OS, or run the scanner via Docker: `docker run --rm -v $(pwd)/reports:/reports scanner:latest scan --image <ref> --output-dir /reports` (the scanner image includes Trivy).
+- If Trivy is installed but not in PATH, see [Help — Adding tools to your PATH](HELP.md#adding-tools-to-your-path).
 
 ### "Could not pull image" / "unauthorized"
 
@@ -68,6 +69,7 @@
 - Ensure Trivy version is compatible (scanner is tested with recent Trivy).
 - Run `trivy image --format json <image>` manually and check output.
 - Run without `--offline` once to refresh the DB in case of corruption.
+- For fresher vulnerability data, run the [Trivy DB update script](HELP.md#updating-the-trivy-database-once-a-day) about once a day: `./scripts/update-trivy-db.sh` (Linux/macOS) or `.\scripts\update-trivy-db.ps1` (Windows).
 
 ### I want to test with an image that has many vulnerabilities
 

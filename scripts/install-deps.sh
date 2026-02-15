@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 # Install dependencies for Docker Container Scanner on Linux and macOS.
-# Run from repo root: ./scripts/install-deps.sh
+# Run from repo root: ./scripts/install-deps.sh  (runs in background by default)
+# To run in foreground (wait for completion): ./scripts/install-deps.sh --foreground
 # Installs: Go 1.21+, Trivy. Optional: Docker (install separately if you want to use the scanner image).
 
 set -e
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LOG_FILE="$REPO_ROOT/install-deps.log"
+
+if [[ "$1" != "--foreground" ]]; then
+  echo "Starting dependency installation in the background. Log: $LOG_FILE"
+  nohup "$0" --foreground > "$LOG_FILE" 2>&1 &
+  echo "Run 'tail -f $LOG_FILE' to watch progress, or re-run with --foreground to run in this terminal."
+  exit 0
+fi
+shift
+
 cd "$REPO_ROOT"
 GO_MIN_VERSION=1.21
 TRIVY_VERSION="${TRIVY_VERSION:-v0.69.1}"

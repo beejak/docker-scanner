@@ -18,8 +18,8 @@ Install dependencies in one step, then build and run:
 
 | OS | Install deps | Then |
 |----|--------------|------|
-| **Linux / macOS** | `./scripts/install-deps.sh` | `go build -o scanner ./cmd/cli && ./scanner scan --image alpine:latest --output-dir ./reports` |
-| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` | `go build -o scanner.exe ./cmd/cli; .\scanner.exe scan --image alpine:latest --output-dir ./reports` |
+| **Linux / macOS** | `./scripts/install-deps.sh` (runs in background; use `--foreground` to wait) | `go build -o scanner ./cmd/cli && ./scanner scan --image alpine:latest --output-dir ./reports` |
+| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` (runs in background; use `-Foreground` to wait) | `go build -o scanner.exe ./cmd/cli; .\scanner.exe scan --image alpine:latest --output-dir ./reports` |
 
 If Go and Trivy are already in PATH, you can skip the install script and run `go build` and `./scanner scan` directly.
 
@@ -31,7 +31,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 
 **Baseline (100+ images):** Run `go run ./cmd/baseline` from repo root to scan 100+ images in parallel and get a report with findings count and **Duration (s)** per image. See [Baseline](docs/baseline.md).
 
-**Web:** Open `web/index.html` for a **drag-and-drop** zone: drop or paste an image ref and see the CLI command to run (full scan API coming later).
+**Drag-and-drop:** Open **`web/index.html`** in your browser. Drop or paste an image reference (e.g. `alpine:3.10`) and the page shows the **CLI** and **Docker** commands with a **Copy** button—no typing needed.
 
 ## Features
 
@@ -40,7 +40,8 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 - **CI/CD**: Azure DevOps, GitHub Actions, GitLab CI, Jenkins; same CLI, same reports.
 - **Offline**: `--offline` with pre-populated cache; no network for DB or enrichment.
 - **Baseline (optional)**: Compare to a reference image (e.g. Docker Hardened Images); report/fail on delta only.
-- **Web**: Drag-and-drop image ref on `web/index.html`; CLI command shown. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
+- **Web**: Open `web/index.html` for drag-and-drop: paste or drop an image ref and get CLI + Docker commands with Copy button. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
+- **Trivy DB**: Run `./scripts/update-trivy-db.sh` (Linux/macOS) or `.\scripts\update-trivy-db.ps1` (Windows) about once a day for fresh vulnerability data; see [Help](docs/HELP.md#updating-the-trivy-database-once-a-day) for scheduling (cron, Task Scheduler).
 
 ## Project layout
 

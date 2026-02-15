@@ -1,12 +1,22 @@
 # Install dependencies for Docker Container Scanner on Windows.
-# Run from repo root: .\scripts\install-deps.ps1
+# Run from repo root: .\scripts\install-deps.ps1  (runs in background by default)
+# To run in foreground (wait for completion): .\scripts\install-deps.ps1 -Foreground
 # Installs: Go 1.21+, Trivy. Optional: Docker (install separately if you want to use the scanner image).
+
+param([switch] $Foreground)
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-if (-not (Test-Path (Join-Path $RepoRoot "go.mod"))) {
-    $RepoRoot = (Get-Location).Path
+if (-not (Test-Path (Join-Path $RepoRoot "go.mod"))) { $RepoRoot = (Get-Location).Path }
+$LogFile = Join-Path $RepoRoot "install-deps.log"
+
+if (-not $Foreground) {
+    Write-Host "Starting dependency installation in the background. Log: $LogFile"
+    Start-Process powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Foreground" -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile -WindowStyle Hidden
+    Write-Host "Run 'Get-Content $LogFile -Wait' to watch progress, or re-run with -Foreground to run in this window."
+    exit 0
 }
+
 Set-Location $RepoRoot
 
 function Refresh-Path {

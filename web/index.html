@@ -40,31 +40,49 @@
 
   <div class="box">
     <strong>Drag & drop – image to scan</strong>
-    <p>Drop an image reference here or paste it below. Then run the CLI command shown (or use a local scan server when available).</p>
-    <div id="dropzone" style="border:2px dashed #ccc; padding:1.5rem; text-align:center; margin:0.5rem 0; min-height:60px;">
-      Drop image ref (e.g. <code>alpine:3.10</code>) or paste in the box
+    <p>Drop an image reference here (e.g. drag text like <code>alpine:3.10</code>) or type/paste in the box below. The page will show the exact command to run.</p>
+    <div id="dropzone" style="border:2px dashed #0066cc; padding:1.5rem; text-align:center; margin:0.5rem 0; min-height:60px; background:#f0f8ff; cursor:pointer;">
+      Drop image ref here (e.g. <code>alpine:3.10</code>) or click and paste
     </div>
     <input type="text" id="imageRef" placeholder="e.g. alpine:3.10 or ghcr.io/org/image:tag" style="width:100%; padding:0.5rem; margin:0.5rem 0; box-sizing:border-box;" />
-    <p id="cliCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.5rem 0; word-break:break-all;"></p>
+    <p style="margin:0.5rem 0 0.25rem 0;"><strong>From source (binary):</strong></p>
+    <p id="cliCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.25rem 0; word-break:break-all;"></p>
+    <button type="button" id="copyCli" style="margin:0.25rem 0; padding:0.25rem 0.5rem; display:none;">Copy command</button>
+    <p style="margin:0.5rem 0 0.25rem 0;"><strong>Docker:</strong></p>
+    <p id="dockerCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.25rem 0; word-break:break-all;"></p>
+    <button type="button" id="copyDocker" style="margin:0.25rem 0; padding:0.25rem 0.5rem; display:none;">Copy command</button>
   </div>
   <script>
     var drop = document.getElementById('dropzone');
     var input = document.getElementById('imageRef');
     var out = document.getElementById('cliCommand');
+    var dockerOut = document.getElementById('dockerCommand');
+    var copyCli = document.getElementById('copyCli');
+    var copyDocker = document.getElementById('copyDocker');
     function setRef(ref) {
       ref = (ref || '').trim();
       input.value = ref;
-      out.textContent = ref ? 'Run: scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv' : '';
+      var cli = ref ? 'scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv' : '';
+      var docker = ref ? 'docker run --rm -v %CD%\\reports:/reports scanner:latest scan --image ' + ref + ' --output-dir /reports --format sarif,markdown,html,csv' : '';
+      out.textContent = cli ? 'Run: ' + cli : '';
+      dockerOut.textContent = docker ? 'Run: ' + docker : '';
+      copyCli.style.display = cli ? 'inline-block' : 'none';
+      copyDocker.style.display = docker ? 'inline-block' : 'none';
+      copyCli.dataset.text = cli;
+      copyDocker.dataset.text = docker;
     }
-    drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.style.background = '#e8f4f8'; });
-    drop.addEventListener('dragleave', function() { drop.style.background = ''; });
+    drop.addEventListener('dragover', function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; drop.style.background = '#e0f0ff'; });
+    drop.addEventListener('dragleave', function() { drop.style.background = '#f0f8ff'; });
     drop.addEventListener('drop', function(e) {
       e.preventDefault();
-      drop.style.background = '';
+      drop.style.background = '#f0f8ff';
       var t = e.dataTransfer.getData('text/plain') || (e.dataTransfer.files[0] && e.dataTransfer.files[0].name);
       if (t) setRef(t);
     });
+    drop.addEventListener('click', function() { input.focus(); });
     input.addEventListener('input', function() { setRef(input.value); });
+    copyCli.addEventListener('click', function() { if (copyCli.dataset.text) { navigator.clipboard.writeText(copyCli.dataset.text); copyCli.textContent = 'Copied!'; setTimeout(function() { copyCli.textContent = 'Copy command'; }, 1500); } });
+    copyDocker.addEventListener('click', function() { if (copyDocker.dataset.text) { navigator.clipboard.writeText(copyDocker.dataset.text); copyDocker.textContent = 'Copied!'; setTimeout(function() { copyDocker.textContent = 'Copy command'; }, 1500); } });
   </script>
 </body>
 </html>
