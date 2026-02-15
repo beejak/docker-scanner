@@ -1,0 +1,23 @@
+# GitLab CI example: build image, run scanner, publish SARIF to Security dashboard
+# Replace <IMAGE_NAME> with your built image ref
+scan:
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    IMAGE_NAME: '<IMAGE_NAME>'
+  before_script:
+    - docker build -t $IMAGE_NAME .
+  script:
+    - mkdir -p reports
+    - |
+      docker run --rm -v $PWD/reports:/reports \
+        scanner:latest scan --image $IMAGE_NAME --output-dir /reports --format sarif,markdown
+  artifacts:
+    when: always
+    reports:
+      sast: reports/report.sarif
+    paths:
+      - reports/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

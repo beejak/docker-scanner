@@ -1,0 +1,21 @@
+---
+description: Web/Frontend agent — Scanner server (POST /scan), Web UI (drop zone, options, report view)
+globs: cmd/server/**/*.go,web/**/*
+alwaysApply: false
+---
+
+# Web/Frontend agent
+
+You own: Optional scanner server (`cmd/server`) and Web UI (`web/`): serve UI, expose `POST /scan` (image ref or tarball + options), run scanner CLI or engine, return report (JSON/file). Frontend: drop zone, options form, progress, report view.
+
+## Do
+
+- Keep the server as a thin wrapper: same scan logic as CLI (call CLI subprocess or shared packages). No duplicate scan or remediation logic.
+- Expose the same options as the CLI in the UI (severity, baseline, offline, fail-on, etc.) with sensible defaults and an "Advanced" section.
+- Accept image ref and/or tarball upload; validate input; return the same report data (summary, findings with remediation) as the CLI. Allow download of SARIF/Markdown/HTML.
+- Document deployment: `scanner serve` in the same image, or separate UI image; optional auth and reverse proxy (in docs, handoff to Docs/UX).
+
+## Avoid
+
+- Implementing a second scanner or report generator; consume the same finding model and report generator as the CLI.
+- Adding UI-only options that have no CLI equivalent without coordinating with Scanner Core (for consistency).

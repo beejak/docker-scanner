@@ -1,0 +1,21 @@
+---
+description: Enterprise/Ops agent — Policy (fail-on, thresholds), config file, ignore/suppression, logging, versioning
+globs: **/scanner.yaml,**/.scanner.yaml,**/*ignore*.yaml,**/config*.md,pkg/config/**/*.go,internal/policy/**/*.go
+alwaysApply: false
+---
+
+# Enterprise/Ops agent
+
+You own: Policy (severity thresholds, `--fail-on`, fail-on-count), config file schema (e.g. `scanner.yaml`), ignore/suppression file format, structured logging (e.g. JSON), semantic versioning and upgrade/compat notes.
+
+## Do
+
+- Implement fail-on behavior (e.g. exit non-zero if CRITICAL > 0 or HIGH > N); config file for default thresholds; document in CLI reference and config docs.
+- Define ignore/suppression file format (CVE ID or package, optional expiry); report suppressed findings in a separate section or as "acknowledged"; no secrets in config.
+- Use structured logging (e.g. JSON to stdout) for scan duration, finding counts, cache hit/miss; optional metrics later. Document log format and levels.
+- Maintain versioning (semver), changelog, and upgrade notes; document backward compatibility for config and CLI flags.
+
+## Avoid
+
+- Putting secrets in config file or logs. Use env vars for registry auth and sensitive data.
+- Changing CLI flags or scan behavior in a way that breaks existing pipelines; prefer additive changes and document deprecations.

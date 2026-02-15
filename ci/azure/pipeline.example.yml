@@ -1,0 +1,31 @@
+# Azure DevOps pipeline example: build image, run scanner, publish SARIF
+# Replace <IMAGE_NAME> with your built image ref (e.g. $(containerRegistry)/$(imageRepository):$(tag))
+trigger: none
+pool: vmImage: ubuntu-latest
+variables:
+  imageName: '<IMAGE_NAME>'
+
+steps:
+  - task: Docker@2
+    displayName: Build image
+    inputs:
+      command: build
+      dockerfile: '**/Dockerfile'
+      tags: $(Build.BuildId)
+
+  - script: |
+      docker run --rm -v $(Build.ArtifactStagingDirectory):/reports \
+        scanner:latest scan --image $(imageName) --output-dir /reports --format sarif,markdown
+    displayName: Run container scanner
+
+  - task: PublishSecurityAnalysisResults@1
+    displayName: Publish SARIF
+    inputs:
+      SarifFile: '$(Build.ArtifactStagingDirectory)/report.sarif'
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish report
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifactName: scan-reports
+      publishLocation: pipeline

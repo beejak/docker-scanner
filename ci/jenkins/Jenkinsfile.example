@@ -1,0 +1,31 @@
+// Jenkins pipeline example: build image, run scanner, publish SARIF and report
+// Replace IMAGE_NAME with your built image ref
+pipeline {
+  agent any
+  environment {
+    IMAGE_NAME = 'app:latest'
+  }
+  stages {
+    stage('Build') {
+      steps {
+        sh 'docker build -t ${IMAGE_NAME} .'
+      }
+    }
+    stage('Scan') {
+      steps {
+        sh 'mkdir -p reports'
+        sh '''
+          docker run --rm -v ${WORKSPACE}/reports:/reports \
+            scanner:latest scan --image ${IMAGE_NAME} --output-dir /reports --format sarif,markdown
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'reports/*', allowEmptyArchive: true
+      // Optional: Publish SARIF (e.g. Warnings NG with SARIF format)
+      // publishIssues issues: [ ... ]
+    }
+  }
+}

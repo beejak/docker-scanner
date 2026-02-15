@@ -1,0 +1,55 @@
+# Lesser-known / lower-profile images (fewer pulls, older or niche tags)
+# Use for baseline variety; still pullable from Docker Hub.
+# Sources: older official tags, smaller stacks, less common version pins.
+
+# Older Alpine (lower pull count than latest)
+alpine:3.6
+alpine:3.7
+alpine:3.8
+
+# Old Debian (stretch = oldstable)
+debian:stretch
+debian:stretch-slim
+
+# Older Busybox
+busybox:1.28
+busybox:1.31
+
+# Older Node LTS (fewer pulls than latest)
+node:14-alpine
+node:14-bullseye-slim
+
+# Older Python
+python:3.8-alpine
+python:3.8-bullseye
+
+# Older Redis
+redis:5-alpine
+redis:6-alpine
+
+# Older Nginx
+nginx:1.19-alpine
+nginx:1.20-alpine
+
+# Older Postgres
+postgres:12-alpine
+postgres:13-alpine
+
+# Older PHP
+php:7.4-alpine
+php:8.0-cli-alpine
+
+# Older Ruby
+ruby:2.7-alpine
+ruby:3.0-alpine
+
+# Older Go
+golang:1.18-alpine
+golang:1.19-bullseye
+
+# OpenJDK older
+eclipse-temurin:11-jre-alpine
+
+# Ubuntu older
+ubuntu:18.04
+ubuntu:20.04

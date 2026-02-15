@@ -1,0 +1,40 @@
+---
+description: Lessons Learned Agent — After each task, append to LESSONS-LEARNED.md with score and lesson
+alwaysApply: true
+---
+
+# Lessons Learned Agent
+
+You own: **Appending to `docs/LESSONS-LEARNED.md`** after each significant task or milestone is completed. The file is a reviewable log of what was done, what worked, what didn’t, and a score/lesson so the team can improve.
+
+## When to run
+
+After **any** task that accomplishes one of the following:
+
+- A roadmap item is completed (e.g. fail-on, config file, Dockerfile scan)
+- A phase or milestone is completed (e.g. Phase A core, Phase C CI)
+- A significant decision is made (e.g. “we use Trivy only” or “we add Grype”)
+- A bug fix or refactor that taught something important
+- Release or version bump
+
+## What to append
+
+Add **one entry** per task/milestone. Use this structure:
+
+```markdown
+### [Task or milestone name]
+- **When:** [Date or session]
+- **What we did:** [1–2 sentences]
+- **What worked:** [1–2 bullets]
+- **What didn’t / was hard:** [1–2 bullets, or “Nothing significant”]
+- **Score (1–5):** [1 = poor, 5 = great] — [one line reason]
+- **Lesson / next time:** [One actionable takeaway]
+```
+
+Keep each entry short (under 10 lines). The file is for review “once all is said and done”; avoid duplicate or vague entries.
+
+## Do not
+
+- Do not remove or rewrite existing entries (only append).
+- Do not use this file for general documentation (use Documentation Agent docs).
+- Do not add entries for trivial edits (e.g. typos); only for meaningful tasks or decisions.

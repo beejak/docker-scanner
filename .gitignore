@@ -1,0 +1,41 @@
+# Binaries
+/scanner
+/scanner.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test and build
+/coverage.txt
+/dist/
+/build/
+*.test
+
+# IDE and env
+.idea/
+.vscode/
+.env
+.env.local
+*.local
+
+# Reports (user output)
+/reports/
+*.sarif
+*.md
+!README.md
+!docs/**/*.md
+!ci/**/*.md
+
+# Cache and baseline output (Trivy, baseline)
+.cache/
+trivy-cache/
+test-results/
+
+# Portable installs (setup-and-test.ps1)
+.trivy/
+.go/
+
+# OS
+.DS_Store
+Thumbs.db

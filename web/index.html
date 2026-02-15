@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Docker Container Scanner</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { font-size: 1.5rem; }
+    ul { padding-left: 1.25rem; }
+    a { color: #0066cc; }
+    code { background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+    .box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Docker Container Scanner</h1>
+  <p>CI/CD-ready container scanner: Trivy-based scans, SARIF/Markdown/HTML reports, remediation guidance, and pipeline integration.</p>
+
+  <div class="box">
+    <strong>Quick start (CLI)</strong>
+    <ul>
+      <li><strong>Docker:</strong> <code>docker run --rm -v %CD%\reports:/reports scanner:latest scan --image alpine:latest --output-dir /reports</code></li>
+      <li><strong>From source:</strong> <code>go build -o scanner ./cmd/cli</code> then <code>./scanner scan --image alpine:latest --output-dir ./reports</code></li>
+      <li><strong>Windows (no PATH):</strong> <code>scripts\run-scan-local.bat</code> — reports in <code>reports\</code>. Add <code>/publish</code> to open the report in the browser after the scan.</li>
+      <li><strong>Test with many vulns:</strong> <code>scripts\run-scan-local.bat ghcr.io/chainguard-dev/maxcve/maxcve:latest</code> (1–2 min scan, tens of thousands of findings).</li>
+    </ul>
+  </div>
+
+  <p><strong>Docs</strong></p>
+  <ul>
+    <li><a href="../docs/HELP.md">Help</a> — plain-language intro</li>
+    <li><a href="../docs/getting-started.md">Getting started</a> — install and first scan</li>
+    <li><a href="../docs/cli-reference.md">CLI reference</a> — commands and flags</li>
+    <li><a href="../docs/testing.md">Testing</a> — unit and integration tests</li>
+  </ul>
+
+  <p><strong>Latest HTML report:</strong> <a href="../reports/report.html">Open report.html</a> (after running a scan). Reports are in the <code>reports\</code> folder at the repo root.</p>
+  <p><strong>Publish report:</strong> Run <code>scripts\serve-report.bat</code> to serve at <code>http://localhost:8080/reports/report.html</code>.</p>
+
+  <div class="box">
+    <strong>Drag & drop – image to scan</strong>
+    <p>Drop an image reference here or paste it below. Then run the CLI command shown (or use a local scan server when available).</p>
+    <div id="dropzone" style="border:2px dashed #ccc; padding:1.5rem; text-align:center; margin:0.5rem 0; min-height:60px;">
+      Drop image ref (e.g. <code>alpine:3.10</code>) or paste in the box
+    </div>
+    <input type="text" id="imageRef" placeholder="e.g. alpine:3.10 or ghcr.io/org/image:tag" style="width:100%; padding:0.5rem; margin:0.5rem 0; box-sizing:border-box;" />
+    <p id="cliCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.5rem 0; word-break:break-all;"></p>
+  </div>
+  <script>
+    var drop = document.getElementById('dropzone');
+    var input = document.getElementById('imageRef');
+    var out = document.getElementById('cliCommand');
+    function setRef(ref) {
+      ref = (ref || '').trim();
+      input.value = ref;
+      out.textContent = ref ? 'Run: scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv' : '';
+    }
+    drop.addEventListener('dragover', function(e) { e.preventDefault(); drop.style.background = '#e8f4f8'; });
+    drop.addEventListener('dragleave', function() { drop.style.background = ''; });
+    drop.addEventListener('drop', function(e) {
+      e.preventDefault();
+      drop.style.background = '';
+      var t = e.dataTransfer.getData('text/plain') || (e.dataTransfer.files[0] && e.dataTransfer.files[0].name);
+      if (t) setRef(t);
+    });
+    input.addEventListener('input', function() { setRef(input.value); });
+  </script>
+</body>
+</html>

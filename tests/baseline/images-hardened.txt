@@ -1,0 +1,11 @@
+# Hardened / minimal images (Chainguard, Red Hat UBI)
+cgr.dev/chainguard/alpine:latest
+cgr.dev/chainguard/nginx:latest
+cgr.dev/chainguard/wolfi-base:latest
+cgr.dev/chainguard/static:latest
+cgr.dev/chainguard/python:latest
+cgr.dev/chainguard/node:latest
+cgr.dev/chainguard/go:latest
+registry.access.redhat.com/ubi8/ubi-minimal:latest
+registry.access.redhat.com/ubi9/ubi-minimal:latest
+registry.access.redhat.com/ubi8/ubi-micro:latest

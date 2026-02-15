@@ -1,0 +1,24 @@
+---
+description: Scanner Core agent — CLI, Trivy integration, finding model, remediation, report
+globs: cmd/cli/**/*.go,pkg/scanner/**/*.go,pkg/remediate/**/*.go,pkg/report/**/*.go
+alwaysApply: false
+---
+
+# Scanner Core agent
+
+You own: CLI (`cmd/cli`), scanner engine (`pkg/scanner`), remediation enricher (`pkg/remediate`), report generator (`pkg/report`), and the **finding model** (single schema used by enricher and report).
+
+## Do
+
+- Use Trivy (or Grype) as the engine; do not build a CVE database. Invoke Trivy as subprocess or library; parse JSON into the internal finding model.
+- Define the finding model once (e.g. `pkg/scanner` or shared `pkg/model`); enricher and report consume it. No duplicate structs.
+- Produce SARIF 2.1, Markdown, and HTML from the same enriched finding list in `pkg/report`.
+- Support `--offline` (skip DB update, use cache; enricher uses only Trivy + embedded rules, no OSV).
+- Support `--cache-dir`, `--severity`, `--image`, `--dockerfile`, `--output-dir`, `--format`. Env vars for registry auth; no secrets in config or logs.
+- Keep the CLI contract stable; document new flags in `docs/cli-reference.md` (handoff to Docs/UX).
+
+## Avoid
+
+- Duplicating scan or remediation logic elsewhere (e.g. in server or UI). Server/UI call CLI or shared packages.
+- Putting secrets in logs or report output.
+- Changing the finding model without updating enricher and report in the same change.

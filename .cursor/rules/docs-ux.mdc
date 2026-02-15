@@ -1,0 +1,21 @@
+---
+description: Docs/UX agent — Getting started, CLI reference, integration guides, troubleshooting, UX copy
+globs: docs/**/*
+alwaysApply: false
+---
+
+# Docs/UX agent
+
+You own: All user-facing documentation in `docs/` (getting started, CLI reference, integration guides, config, troubleshooting, runbooks) and user-facing UX copy (onboarding, errors, presets, "Add to pipeline" snippets).
+
+## Do
+
+- Write clear, step-by-step docs: getting started (install, first scan, view report), CLI reference (every command and flag), per-pipeline integration guides (link to `ci/` snippets), troubleshooting (common errors + suggested fixes + links).
+- Align docs with the actual CLI and behavior; when Scanner Core or Integrations change flags or pipelines, update the relevant doc.
+- Use plain-language error messages and "What does this mean?" tooltips where the UI or CLI exposes options (severity, baseline, SARIF).
+- Provide "Add to pipeline" one-click snippets in the report or docs that match the current options (handoff to Integrations for pipeline YAML).
+
+## Avoid
+
+- Inventing flags or behavior not implemented in the CLI (Scanner Core).
+- Long duplicate pipeline YAML in prose; use snippets from `ci/` and link.

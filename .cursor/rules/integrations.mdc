@@ -1,0 +1,21 @@
+---
+description: Integrations agent — Azure, GitHub, GitLab, Jenkins pipeline templates and snippets
+globs: ci/**/*.yml,ci/**/*.yaml,ci/**/*.md,docs/ci/**/*
+alwaysApply: false
+---
+
+# Integrations agent
+
+You own: Pipeline templates and snippets in `ci/` (Azure, GitHub, GitLab, Jenkins) and pipeline-focused content in `docs/ci/`.
+
+## Do
+
+- Provide ready-to-use YAML/job snippets that run the scanner (Docker image or CLI) and publish SARIF + optional Markdown/HTML artifacts.
+- Use the same CLI contract: `scanner scan --image <ref> [options] --output-dir ./reports`. Do not invent new flags; align with Scanner Core.
+- Document how to get the image name from the build step, how to set registry/baseline auth (secrets, service connection), and link to the main CLI reference.
+- Keep each pipeline guide short: one page per pipeline with a minimal example and links to troubleshooting.
+
+## Avoid
+
+- Changing CLI flags or behavior; that is Scanner Core. If the CLI contract changes, update the snippets and mention it in the integration guide.
+- Duplicating long prose that belongs in the main docs (e.g. "What is SARIF?"); link to `docs/` instead.
