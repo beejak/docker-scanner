@@ -1,45 +1,80 @@
 # Getting started
 
+This page walks you through **installing** and **running your first scan** in plain steps.
+
+---
+
 ## Prerequisites
 
-- Docker (to run the scanner image or to scan images)
-- Optional: Go 1.21+ (to build from source)
+- **Option A — Docker only:** You need **Docker** installed. You build the scanner as a container image and run it; no Go or Trivy on your machine.
+- **Option B — From source:** You need **Go 1.21+** and **Trivy**. Use the **one-script install** for your OS so you don’t have to install them by hand.
 
-## Install
+---
 
-### Option A: Docker image (recommended for CI)
+## Install dependencies (from source)
+
+If you want to build and run the scanner from source (instead of using the Docker image), run **one script** to install Go and Trivy:
+
+| OS | Command (run from project root) |
+|----|----------------------------------|
+| **Linux** | `chmod +x scripts/install-deps.sh && ./scripts/install-deps.sh` |
+| **macOS** | `chmod +x scripts/install-deps.sh && ./scripts/install-deps.sh` |
+| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` |
+
+The script installs Go and Trivy if they’re missing (using your package manager or a direct download). When it finishes, you can build and run the scanner. See [Help — What do I need installed?](HELP.md#what-do-i-need-installed) for more detail.
+
+---
+
+## Install the scanner
+
+### Option A: Docker image (recommended for most users)
+
+No Go or Trivy needed. From the project root:
 
 ```bash
-docker pull <your-registry>/scanner:latest
+docker build -t scanner:latest .
 ```
 
 ### Option B: Build from source
 
+After running the [install-deps script](#install-dependencies-from-source) for your OS:
+
 ```bash
-git clone <repo>
-cd docker-scanner
 go build -o scanner ./cmd/cli
 ```
 
+On Windows the binary will be `scanner.exe`. You can also use `go run ./cmd/cli` instead of building.
+
+---
+
 ## First scan
 
-1. Ensure Docker is running and you can pull images (or use a local image).
-2. Run the scanner:
+1. **Make sure Docker is running** (so the scanner can pull or use local images). If you use only the Docker image, Docker is already required.
+2. **Run a scan** against an image (e.g. `alpine:latest`):
 
+   **Using the Docker image:**
    ```bash
-   # Using the built binary
-   ./scanner scan --image alpine:latest --output-dir ./reports
-
-   # Or using Docker
-   docker run --rm -v $PWD/reports:/reports scanner:latest scan --image alpine:latest --output-dir /reports
+   docker run --rm -v "$PWD/reports:/reports" scanner:latest scan --image alpine:latest --output-dir /reports --format sarif,markdown
    ```
+   On Windows (cmd): use `%CD%\reports` instead of `$PWD/reports`.
 
-3. Open `./reports/report.md` (or `report.sarif` / `report.html`) to view findings and remediation. Reports include **Exploitable** (CISA KEV), **Why severity**, and **Exploit info**; see [Vulnerability reports](vulnerability-reports.md).
+   **Using the binary (from source):**
+   ```bash
+   ./scanner scan --image alpine:latest --output-dir ./reports
+   ```
+   On Windows: `.\scanner.exe scan --image alpine:latest --output-dir .\reports`
 
-**Windows without PATH:** If Go and Trivy are not on your Path, run `scripts\run-scan-local.bat` from the repo root. It uses Trivy and Go from `Downloads\trivy_*` and `Program Files\Go\bin`; reports appear in `reports\`.
+3. **Open the report**  
+   Reports are written to the folder you gave (`./reports` or `/reports`). Open `report.md` (readable) or `report.html` in a browser. You also get `report.sarif` for Azure/GitHub Security. Reports include **Exploitable** (CISA KEV), **Why severity**, and **Exploit info**; see [Vulnerability reports](vulnerability-reports.md).
+
+**Windows without PATH:** If Go and Trivy are not on your PATH, use `scripts\run-scan-local.bat` from the repo root (it uses Trivy/Go from known locations). Reports go to `reports\`.
+
+---
 
 ## Next steps
 
+- **[Help (plain language)](HELP.md)** — What is this? What do the words mean? Baseline and cleanup in simple terms.
 - [CLI reference](cli-reference.md) — All commands and flags.
-- [CI integration](ci/README.md) — Add the scanner to Azure, GitHub, GitLab, or Jenkins.
+- [CI/CD primer](ci-cd-primer.md) — Add the scanner to your pipeline.
+- [Baseline](baseline.md) — Scan many images and get a summary + dashboard.
 - [Troubleshooting](troubleshooting.md) — Common errors and fixes.

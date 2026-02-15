@@ -12,12 +12,16 @@ docker run --rm -v %CD%\reports:/reports scanner:latest scan --image alpine:late
 # Reports in ./reports/report.sarif and ./reports/report.md
 ```
 
-**Option B — From source (requires Go 1.21+ and Trivy in PATH):**
+**Option B — From source (requires Go 1.21+ and Trivy):**
 
-```bash
-go build -o scanner ./cmd/cli
-./scanner scan --image alpine:latest --output-dir ./reports
-```
+Install dependencies in one step, then build and run:
+
+| OS | Install deps | Then |
+|----|--------------|------|
+| **Linux / macOS** | `./scripts/install-deps.sh` | `go build -o scanner ./cmd/cli && ./scanner scan --image alpine:latest --output-dir ./reports` |
+| **Windows (PowerShell)** | `.\scripts\install-deps.ps1` | `go build -o scanner.exe ./cmd/cli; .\scanner.exe scan --image alpine:latest --output-dir ./reports` |
+
+If Go and Trivy are already in PATH, you can skip the install script and run `go build` and `./scanner scan` directly.
 
 **Option C — Windows without PATH:** Run `scripts\run-scan-local.bat` (uses Trivy/Go from `Downloads\trivy_*` and `Program Files\Go\bin`). Reports in `reports\`. Add `/publish` to open the report in the browser after the scan (e.g. `scripts\run-scan-local.bat alpine:3.10 /publish`).
 
@@ -53,6 +57,7 @@ go build -o scanner ./cmd/cli
 
 - **Unit tests** (no Trivy required): `go test ./pkg/... -v`
 - **Integration tests** (Trivy in PATH; optional Docker for image pull): `go test -tags=integration ./tests/integration/... -v`
+- **Install dependencies then test:** Run `./scripts/install-deps.sh` (Linux/macOS) or `.\scripts\install-deps.ps1` (Windows), then run the tests above.
 - **Windows — install Go + Trivy and run all tests**: `.\scripts\setup-and-test.ps1` (uses winget or portable installs if needed)
 - **Windows without PATH**: `scripts\run-tests.bat` (sets Trivy/Go from known locations, then runs unit + integration tests)
 
@@ -60,8 +65,8 @@ See [Testing](docs/testing.md) for details.
 
 ## Documentation
 
-- **[Help (plain language)](docs/HELP.md)** — What is this? What do I do first? What do the words mean? Start here if you’re new.
-- [Getting started](docs/getting-started.md) — Install, first scan, view report.
+- **[Help (plain language)](docs/HELP.md)** — What is this? What do I need installed? What do the words mean? Baseline and cleanup in simple terms. Start here if you’re new.
+- [Getting started](docs/getting-started.md) — Install dependencies (one script per OS), first scan, view report.
 - [CLI reference](docs/cli-reference.md) — Commands and flags.
 - [CI/CD primer](docs/ci-cd-primer.md) — Add the scanner to non‑prod pipelines (layman-friendly). Pipeline templates in `ci/`.
 - [Troubleshooting](docs/troubleshooting.md) — Common errors and fixes.

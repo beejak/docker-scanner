@@ -4,7 +4,7 @@ The baseline run scans a list of **100+ images** (Alpine, Debian, Ubuntu, Busybo
 
 ## Run baseline
 
-From repo root (Trivy and Go in PATH):
+From repo root with **Trivy and Go in PATH**. If you don’t have them yet, run the [install-deps script](getting-started.md#install-dependencies-from-source) for your OS first (`./scripts/install-deps.sh` or `.\scripts\install-deps.ps1`).
 
 ```bash
 go run ./cmd/baseline
