@@ -20,8 +20,10 @@ import (
 func main() {
 	scanCmd := flag.NewFlagSet("scan", flag.ExitOnError)
 	configPath := scanCmd.String("config", "", "Path to scanner.yaml or .scanner.yaml (default: look in current directory)")
-	image := scanCmd.String("image", "", "Image to scan (e.g. alpine:latest or myregistry.io/app:v1)")
-	dockerfile := scanCmd.String("dockerfile", "", "Optional Dockerfile path")
+	image := scanCmd.String("image", "", "Image to scan (e.g. alpine:latest or myregistry.io/app:v1). Use with Docker/Podman/containerd.")
+	fsPath := scanCmd.String("fs", "", "Path to root filesystem to scan (e.g. LXC container rootfs). Use instead of --image for filesystem/LXC.")
+	lxcName := scanCmd.String("lxc", "", "LXC container name: scan /var/lib/lxc/<name>/rootfs (Linux). Ignored if --fs is set.")
+	dockerfile := scanCmd.String("dockerfile", "", "Optional Dockerfile path (only with --image)")
 	severity := scanCmd.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "Comma-separated severities to include (default: all)")
 	offline := scanCmd.Bool("offline", false, "Skip DB update and OSV; use cache and embedded rules only")
 	cacheDir := scanCmd.String("cache-dir", "", "Cache directory for Trivy DB (default: system cache)")
@@ -33,7 +35,9 @@ func main() {
 	failOnCount := scanCmd.String("fail-on-count", "", "Exit with code 1 if count for severity >= N (e.g. HIGH:5). One rule only.")
 
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: scanner scan --image <ref> [options]")
+		fmt.Fprintln(os.Stderr, "Usage: scanner scan --image <ref> [options]   (Docker/Podman image)")
+		fmt.Fprintln(os.Stderr, "       scanner scan --fs <path> [options]       (rootfs, e.g. LXC)")
+		fmt.Fprintln(os.Stderr, "       scanner scan --lxc <name> [options]     (LXC container rootfs on Linux)")
 		fmt.Fprintln(os.Stderr, "       scanner db update [--cache-dir <dir>]")
 		os.Exit(1)
 	}
@@ -41,9 +45,14 @@ func main() {
 	switch os.Args[1] {
 	case "scan":
 		_ = scanCmd.Parse(os.Args[2:])
+		rootfs := *fsPath
+		if rootfs == "" && *lxcName != "" {
+			rootfs = "/var/lib/lxc/" + *lxcName + "/rootfs"
+		}
 		opts := runScanOpts{
 			image:       *image,
 			dockerfile:  *dockerfile,
+			rootfs:      rootfs,
 			severity:    splitTrim(*severity, ","),
 			offline:     *offline,
 			cacheDir:    *cacheDir,
@@ -65,8 +74,16 @@ func main() {
 				applyConfig(&opts, cfg)
 			}
 		}
-		if opts.image == "" {
-			fmt.Fprintln(os.Stderr, "Error: --image is required")
+		if opts.image == "" && opts.rootfs == "" {
+			fmt.Fprintln(os.Stderr, "Error: use --image <ref> (Docker/Podman image) or --fs <path> / --lxc <name> (filesystem/LXC)")
+			os.Exit(1)
+		}
+		if opts.rootfs != "" && opts.image != "" {
+			fmt.Fprintln(os.Stderr, "Error: use either --image or --fs/--lxc, not both")
+			os.Exit(1)
+		}
+		if opts.rootfs != "" && opts.dockerfile != "" {
+			fmt.Fprintln(os.Stderr, "Error: --dockerfile is only valid with --image")
 			os.Exit(1)
 		}
 		runScan(context.Background(), opts)
@@ -87,6 +104,7 @@ func main() {
 type runScanOpts struct {
 	image          string
 	dockerfile     string
+	rootfs         string
 	severity       []string
 	offline        bool
 	cacheDir       string
@@ -99,18 +117,26 @@ type runScanOpts struct {
 }
 
 func runScan(ctx context.Context, opts runScanOpts) {
+	target := opts.image
+	if target == "" {
+		target = opts.rootfs
+	}
+	// Progress: single line to stderr so scripts can keep stdout clean
+	fmt.Fprintf(os.Stderr, "Scanning %s...\r", target)
 	scanOpts := scanner.ScanOptions{
 		Image:      opts.image,
 		Dockerfile: opts.dockerfile,
+		Rootfs:     opts.rootfs,
 		Severity:   opts.severity,
 		Offline:    opts.offline,
 		CacheDir:   opts.cacheDir,
 	}
 	findings, err := scanner.Scan(ctx, scanOpts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Scan failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\rScan failed: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Fprintf(os.Stderr, "Scanning %s... enriching...\r", target)
 	enriched := remediate.Enrich(findings, opts.offline)
 	baseName := opts.outputName
 	if baseName == "" {
@@ -125,9 +151,10 @@ func runScan(ctx context.Context, opts runScanOpts) {
 		ReportBaseName: baseName,
 	}
 	if err := report.Generate(enriched, reportOpts); err != nil {
-		fmt.Fprintf(os.Stderr, "Report failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\rReport failed: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Fprintf(os.Stderr, "\r%60s\n", "") // clear progress line
 	fmt.Printf("Scan complete: %d findings. Reports written to %s\n", len(enriched), opts.outputDir)
 
 	// Fail-on policy: exit 1 if policy is violated so CI can gate the build

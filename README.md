@@ -31,23 +31,30 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 
 **Baseline (100+ images):** Run `go run ./cmd/baseline` from repo root to scan 100+ images in parallel and get a report with findings count and **Duration (s)** per image. Use images from **other registries** (GitHub ghcr.io, Quay.io, Chainguard cgr.dev, Red Hat) to avoid Docker Hub rate limits: set `BASELINE_IMAGES=tests/baseline/images-other-registries.txt`. See [Baseline](docs/baseline.md).
 
-**Drag-and-drop:** Open **`web/index.html`** in your browser. Drop or paste an image reference (e.g. `alpine:3.10`) and the page shows the **CLI** and **Docker** commands with a **Copy** button—no typing needed.
+**Drag-and-drop:** Open **`web/index.html`** in your browser. Choose **Image** (Docker/Podman), **Rootfs path**, or **LXC name**; drop or paste a reference and the page shows the **CLI** and **Docker** commands with a **Copy** button—no typing needed.
+
+**Config file:** Put `scanner.yaml` or `.scanner.yaml` in the current directory (or copy from `scanner.yaml.example`) to set default severity, format, and output-dir; then run `scanner scan --image <ref>`. See [CLI reference — Config file](docs/cli-reference.md#config-file). **IDE & MCP:** VS Code/Cursor extension and JetBrains plugin in `ide/`; MCP server in `cmd/mcp-server` for AI assistants. See [IDE plugins and MCP server](docs/ide-and-mcp.md).
+
+**Workflow test (pull + scan):** Run `.\scripts\run-workflow-test.ps1` (Windows) or `./scripts/run-workflow-test.sh` (Linux/macOS) to pull a few old and new images from different registries and scan each with config. Uses `tests/baseline/images-workflow-test.txt`; reports in `reports/wf-*.md` and `wf-*.html`. Use `-PullFirst` / `--pull-first` to pull images before scanning.
 
 ## Features
 
-- **Scan after build**: Run in pipeline right after `docker build`; scan image and optional Dockerfile (`--dockerfile`); SARIF + Markdown/HTML/CSV reports.
+- **Scan after build**: Run in pipeline right after `docker build`; scan image and optional Dockerfile (`--dockerfile`); SARIF + Markdown/HTML/CSV reports. Also scan **rootfs** (e.g. LXC) with `--fs <path>` or `--lxc <name>` (Linux).
 - **Remediation**: Per-finding fix guidance (upgrade path, base image, CVE links).
 - **CI/CD**: Azure DevOps, GitHub Actions, GitLab CI, Jenkins; same CLI, same reports.
 - **Config file**: `scanner.yaml` or `.scanner.yaml` in the current directory (or `--config <path>`) for default severity, format, output-dir, and fail-on policy; CLI flags override. See [CLI reference](docs/cli-reference.md#config-file).
 - **Offline**: `--offline` with pre-populated cache; no network for DB or enrichment.
 - **Baseline (optional)**: Compare to a reference image (e.g. Docker Hardened Images); report/fail on delta only.
-- **Web**: Open `web/index.html` for drag-and-drop: paste or drop an image ref and get CLI + Docker commands with Copy button. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
+- **Web**: Open `web/index.html` for drag-and-drop: choose Image, Rootfs path, or LXC name; paste or drop a ref and get CLI + Docker commands with Copy button. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
 - **Trivy DB**: Run `./scripts/update-trivy-db.sh` (Linux/macOS) or `.\scripts\update-trivy-db.ps1` (Windows) about once a day for fresh vulnerability data; see [Help](docs/HELP.md#updating-the-trivy-database-once-a-day) for scheduling (cron, Task Scheduler).
 
 ## Project layout
 
 - `cmd/cli` — CLI entrypoint (`scan`, `db update`, optional `serve`).
+- `cmd/mcp-server` — MCP server for AI assistants (tools: `scan_image`, `db_update`); stdio transport.
 - `cmd/server` — Optional HTTP server for Web UI.
+- `ide/vscode` — VS Code / Cursor extension (scan image from editor).
+- `ide/jetbrains` — JetBrains plugin (IntelliJ, GoLand; Tools → Scan image with Docker Scanner).
 - `pkg/config` — Load `scanner.yaml` / `.scanner.yaml` for default scan options.
 - `pkg/scanner` — Invoke Trivy, parse output into internal finding model.
 - `pkg/remediate` — Enrich findings with fix text (Trivy + OSV or rules).
@@ -59,7 +66,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 ## Testing
 
 - **Unit tests** (no Trivy required): `go test ./pkg/... -v`
-- **Integration tests** (Trivy in PATH; optional Docker for image pull): `go test -tags=integration ./tests/integration/... -v`
+- **Integration tests** (Trivy in PATH; optional Docker for image pull): `go test -tags=integration ./tests/integration/... -v` — includes full scan and **scan-with-config** (workflow using `scanner.yaml` and image pull).
 - **Install dependencies then test:** Run `./scripts/install-deps.sh` (Linux/macOS) or `.\scripts\install-deps.ps1` (Windows), then run the tests above.
 - **Windows — install Go + Trivy and run all tests**: `.\scripts\setup-and-test.ps1` (uses winget or portable installs if needed)
 - **Windows without PATH**: `scripts\run-tests.bat` (sets Trivy/Go from known locations, then runs unit + integration tests)

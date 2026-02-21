@@ -17,6 +17,8 @@ Docker Scanner can be used from your editor and from AI assistants via an **MCP 
 - The **scanner** itself: either build it from this repo (`go build -o scanner ./cmd/cli`) and put it in your PATH, or use the Docker method (see [Getting started](getting-started.md)).
 - **Trivy** in PATH (the scanner uses it under the hood). The [install script](getting-started.md) can set this up for you.
 
+The IDE plugins and MCP server currently run **image** scans. The CLI also supports **rootfs/LXC** with `--fs <path>` and `--lxc <name>`; see [CLI reference](cli-reference.md#scan) and [Help — Runtimes](HELP.md#runtimes-podman-lxc).
+
 ---
 
 ### How to use the VS Code / Cursor extension (step-by-step)

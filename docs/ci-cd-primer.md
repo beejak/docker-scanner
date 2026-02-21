@@ -56,7 +56,7 @@ Build image  →  (optional) docker login with secret  →  Run scanner  →  Pu
 - To **fail the pipeline** if there are Critical or High findings:
   - Add: `--fail-on-severity CRITICAL,HIGH`
 
-Replace `<YOUR_IMAGE>` with the image you just built (e.g. `myapp:latest` or the full tag your pipeline uses).
+Replace `<YOUR_IMAGE>` with the image you just built (e.g. `myapp:latest` or the full tag your pipeline uses). For scanning a **root filesystem** (e.g. on a host or in LXC), use `--fs <path>` or `--lxc <name>` instead of `--image`; see [CLI reference](cli-reference.md#scan).
 
 **Config file (optional):** You can put a **`scanner.yaml`** (or `.scanner.yaml`) in your repo with default `severity`, `format`, `output-dir`, or `fail-on-severity`. The pipeline step then only needs `--image <ref>`; the rest come from the config. See [CLI reference — Config file](cli-reference.md#config-file).
 

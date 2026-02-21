@@ -1,6 +1,6 @@
 # Baseline test (100+ images)
 
-The baseline run scans a list of **100+ images** (Alpine, Debian, Ubuntu, Busybox, Node, Python, Redis, Nginx, Postgres, etc.) in parallel, records **findings count** and **duration per image**, and writes a report so you can see where the product stands and track regressions.
+The baseline run scans a list of **100+ images** (Alpine, Debian, Ubuntu, Busybox, Node, Python, Redis, Nginx, Postgres, etc.) in parallel, records **findings count** and **duration per image**, and writes a report so you can see where the product stands and track regressions. For scanning a **single root filesystem** (e.g. an LXC container), use the CLI with `--fs <path>` or `--lxc <name>`; see [CLI reference — scan](cli-reference.md#scan).
 
 ## Run baseline
 
@@ -44,6 +44,7 @@ Scans run in parallel (default 5 workers). Each worker uses its own Trivy cache 
 - **`tests/baseline/images-lesser-known.txt`** – optional: lower-profile images (older tags, fewer pulls) from Docker Hub. Use for variety: set `BASELINE_IMAGES=tests/baseline/images-lesser-known.txt` (optionally with `BASELINE_LIMIT` and `BASELINE_RANDOM=1`).
 - **`tests/baseline/images-other-registries.txt`** – optional: images from **other registries** (GitHub Container Registry, Quay.io, Chainguard, Red Hat). Use to avoid Docker Hub rate limits or to test multi-registry. Set `BASELINE_IMAGES=tests/baseline/images-other-registries.txt` (optionally with `BASELINE_LIMIT`). See [Other registries](#other-registries) below.
 - **`tests/baseline/images-obscure.txt`** – optional: **older / obscure** tags and repos (Docker Hub old tags, GHCR, Quay, ECR Public, Red Hat). Use to test scanner on legacy and low-profile images. Set `BASELINE_IMAGES=tests/baseline/images-obscure.txt` (optionally with `BASELINE_LIMIT`, `BASELINE_RANDOM=1`). Some tags may no longer be available.
+- **`tests/baseline/images-workflow-test.txt`** – **workflow test**: a few old and new images from different registries (Docker Hub, GHCR, Quay, Red Hat, Chainguard) for even distribution. Use with **`scripts/run-workflow-test.ps1`** (Windows) or **`scripts/run-workflow-test.sh`** (Linux/macOS) to pull (optional) and scan each image with config; reports go to `reports/` as `wf-<image>.md` / `.html`. See [Workflow test (pull + scan with config)](#workflow-test-pull--scan-with-config) below.
 
 **Where images come from:** All registries, sites, and repos are documented in [Image sources](image-sources.md). When adding or changing image lists, update that file and reference it in list comments.
 
@@ -62,6 +63,18 @@ Using images from registries other than Docker Hub can help with **rate limits**
 | **Google (gcr.io)** | Legacy public images; newer Artifact Registry often requires auth. | Use `docker login` or service account if needed. |
 
 Use the list **`tests/baseline/images-other-registries.txt`** to run a baseline against a mix of these. For private images, run `docker login <registry>` (or set up CI secrets) before pulling.
+
+## Workflow test (pull + scan with config)
+
+To **pull a few old and new images from different repos** and **test the full workflow** (config file + scan → enrich → report):
+
+1. From repo root, run:
+   - **Windows:** `.\scripts\run-workflow-test.ps1` (or `-PullFirst` to pull each image before scanning)
+   - **Linux/macOS:** `./scripts/run-workflow-test.sh` (or `--pull-first`)
+2. The script uses **`tests/baseline/images-workflow-test.txt`** (about 10 images: Alpine/Debian/Nginx old and new from Docker Hub, plus one each from GHCR, Quay, Red Hat, Chainguard). It creates **`scanner.yaml`** from `scanner.yaml.example` if missing, builds the scanner if needed, then runs **`scanner scan --image <ref>`** for each image. Reports are written to **`reports/`** with names like **`wf-alpine-3.10.md`**, **`wf-alpine-latest.html`**, etc.
+3. **Trivy** must be in PATH. Optional: use **`-PullFirst`** / **`--pull-first`** so images are pulled from the registries first (tests pull from Docker Hub, ghcr.io, quay.io, Red Hat, cgr.dev).
+
+This exercises config-loaded defaults, multi-registry pull (if used), and the scan → enrich → report path on a small, evenly distributed set.
 
 ## Testing multiple microservices / one image per service
 

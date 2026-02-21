@@ -124,6 +124,22 @@ func main() {
 		}
 	}
 
+	// Progress TUI: one line updated every second (does not block scans)
+	totalImages := len(images)
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			mu.Lock()
+			n := len(results)
+			mu.Unlock()
+			fmt.Fprintf(os.Stderr, "\rProgress: %d/%d scanned   ", n, totalImages)
+			if n >= totalImages {
+				fmt.Fprintf(os.Stderr, "\n")
+				return
+			}
+		}
+	}()
+
 	var wg sync.WaitGroup
 	for i := 0; i < workers; i++ {
 		workerID := i

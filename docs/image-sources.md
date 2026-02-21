@@ -43,6 +43,7 @@ This document lists **every registry, website, and repository** we reference for
 | `tests/baseline/images-lesser-known.txt` | Docker Hub (older tags) | Older Alpine, Debian stretch, older Node/Python/Redis etc. |
 | `tests/baseline/images-other-registries.txt` | ghcr.io, cgr.dev, quay.io, registry.access.redhat.com, gcr.io (optional) | Avoids Docker Hub rate limits. |
 | `tests/baseline/images-5-registries.txt` | Docker Hub, ghcr.io, cgr.dev, quay.io, Red Hat | One image per registry for a quick multi-registry run. |
+| `tests/baseline/images-workflow-test.txt` | Docker Hub (old+new), ghcr.io, quay.io, Red Hat, cgr.dev | Few old and new images for **workflow test**: use with `scripts/run-workflow-test.ps1` or `run-workflow-test.sh` to pull (optional) and scan each with config. |
 | `tests/baseline/images-obscure.txt` | Docker Hub (old tags), GHCR, Quay, ECR Public | Older/obscure tags and repos for scanner coverage. |
 | Your list (e.g. `images-local.txt`) | Local or private registry | Add refs after `docker login`; see [Hardened images and local registries](hardened-images-and-local-registries.md). |
 

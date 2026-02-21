@@ -1,0 +1,22 @@
+# Workflow test — few old and new images from different registries (even distribution)
+# Use: run scripts/run-workflow-test.ps1 or run-workflow-test.sh to pull + scan with config.
+# See docs/baseline.md and docs/image-sources.md.
+
+# --- Docker Hub (library): old and new ---
+alpine:3.10
+alpine:latest
+debian:buster
+debian:bookworm-slim
+nginx:alpine
+
+# --- GitHub Container Registry ---
+ghcr.io/chainguard-images/nginx:latest
+
+# --- Quay.io ---
+quay.io/prometheus/prometheus:latest
+
+# --- Red Hat UBI ---
+registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+# --- Chainguard (cgr.dev) ---
+cgr.dev/chainguard/wolfi-base:latest

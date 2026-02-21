@@ -23,6 +23,7 @@ Unbiased comparison of this project against free and paid container image scanne
 | Feature | Our scanner | Trivy | Grype | Snyk | Docker Scout | Aqua Enterprise |
 |--------|-------------|-------|-------|------|--------------|-----------------|
 | **Image scan** | Yes (via Trivy) | Yes | Yes | Yes | Yes | Yes |
+| **Rootfs / filesystem scan** | Yes (`--fs`, `--lxc` for LXC) | Yes (rootfs) | Yes (dir) | Varies | No | Varies |
 | **Dockerfile scan** | Yes (`--dockerfile`) | Yes (config) | No | Yes | Yes | Yes |
 | **SARIF output** | Yes | Yes | Via Syft/plugins | Yes | Yes | Yes |
 | **Remediation text** | Yes (upgrade path + links) | Fixed version in JSON | Fixed version | Detailed + base image | Yes + base image | Yes + reachability |

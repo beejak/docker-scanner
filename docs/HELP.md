@@ -14,6 +14,15 @@ This page answers common questions in **simple terms**. If you’re new to the s
 
 So: **run → (config) → Trivy scan → enrich → write reports (and optionally fail)**.
 
+You can scan **container images** (Docker, Podman, containerd) with `--image <ref>`, or a **root filesystem** (e.g. an LXC container) with `--fs <path>` or `--lxc <name>` (Linux). See [Runtimes](#runtimes-podman-lxc) below.
+
+---
+
+## Runtimes (Podman, LXC)
+
+- **Podman:** The scanner uses Trivy, which can use Podman when the Podman socket is available. If you see "no podman socket found" or similar, start the Podman socket (e.g. `systemctl --user enable --now podman.socket` on Linux) and ensure the image was pulled with Podman. Then run `scanner scan --image <ref>` as usual.
+- **LXC (rootfs):** To scan an LXC container’s filesystem (packages inside the container), use **`--fs /var/lib/lxc/<container_name>/rootfs`** or, on Linux, **`--lxc <container_name>`** (which resolves to that path). You cannot use `--dockerfile` with rootfs scans. On Windows, LXC is uncommon; use `--fs` with the path to an exported or copied rootfs if you have one.
+
 ---
 
 ## What is this?
@@ -79,7 +88,7 @@ Trivy uses a **vulnerability database** that is updated regularly. For fresher r
 
 ## Drag-and-drop: try the web UI
 
-You can **drag and drop** an image reference (or paste it) and get the exact command to run, without typing. Open **`web/index.html`** in your browser (from the project folder). Drop or paste an image name (e.g. `alpine:3.10`), and the page shows the **CLI command** and the **Docker command**; use the **Copy** button to paste into your terminal. No server required—it’s a single HTML file.
+You can **drag and drop** an image reference or a rootfs path (or paste it) and get the exact command to run, without typing. Open **`web/index.html`** in your browser (from the project folder). Choose **Image** (Docker/Podman), **Rootfs path**, or **LXC name**, then drop or paste (e.g. `alpine:3.10` or `/var/lib/lxc/mycontainer/rootfs`). The page shows the **CLI command** and the **Docker command**; use the **Copy** button to paste into your terminal. No server required—it’s a single HTML file.
 
 ---
 

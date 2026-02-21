@@ -69,6 +69,8 @@ On Windows the binary will be `scanner.exe`. You can also use `go run ./cmd/cli`
 
 **Windows without PATH:** If Go and Trivy are not on your PATH, use `scripts\run-scan-local.bat` from the repo root (it uses Trivy/Go from known locations). Reports go to `reports\`.
 
+**Scan a root filesystem (e.g. LXC):** Use `--fs <path>` or, on Linux, `--lxc <container_name>` instead of `--image`. See [CLI reference — scan](cli-reference.md#scan) and [Help — Runtimes](HELP.md#runtimes-podman-lxc).
+
 ---
 
 ## Updating the Trivy database (once a day)

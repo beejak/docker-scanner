@@ -29,7 +29,7 @@
 
   <p><strong>Docs</strong></p>
   <ul>
-    <li><a href="../docs/HELP.md">Help</a> — plain-language intro, PATH, Trivy DB, drag-and-drop</li>
+    <li><a href="../docs/HELP.md">Help</a> — plain-language intro, PATH, Trivy DB, drag-and-drop (image or rootfs/LXC)</li>
     <li><a href="../docs/getting-started.md">Getting started</a> — install deps, first scan</li>
     <li><a href="../docs/baseline.md">Baseline</a> — scan many images, dashboard</li>
     <li><a href="../docs/image-sources.md">Image sources</a> — registries and lists</li>
@@ -45,12 +45,20 @@
   <p><strong>Publish report:</strong> Run <code>scripts\serve-report.bat</code> to serve at <code>http://localhost:8080/reports/report.html</code>.</p>
 
   <div class="box">
-    <strong>Drag & drop – image to scan</strong>
-    <p>Drop an image reference here (e.g. drag text like <code>alpine:3.10</code>) or type/paste in the box below. The page will show the exact command to run.</p>
+    <strong>Drag & drop – image or rootfs to scan</strong>
+    <p>Choose <strong>Image</strong> (Docker/Podman), <strong>Rootfs path</strong>, or <strong>LXC name</strong>. Drop or paste in the box; the page shows the exact command.</p>
+    <p style="margin:0.5rem 0 0.25rem 0;">
+      <label>Scan mode: </label>
+      <select id="scanMode" style="padding:0.25rem;">
+        <option value="image">Image (Docker/Podman)</option>
+        <option value="fs">Rootfs path (e.g. LXC)</option>
+        <option value="lxc">LXC container name (Linux)</option>
+      </select>
+    </p>
     <div id="dropzone" style="border:2px dashed #0066cc; padding:1.5rem; text-align:center; margin:0.5rem 0; min-height:60px; background:#f0f8ff; cursor:pointer;">
-      Drop image ref here (e.g. <code>alpine:3.10</code>) or click and paste
+      Drop here or click and paste
     </div>
-    <input type="text" id="imageRef" placeholder="e.g. alpine:3.10 or ghcr.io/org/image:tag" style="width:100%; padding:0.5rem; margin:0.5rem 0; box-sizing:border-box;" />
+    <input type="text" id="imageRef" placeholder="e.g. alpine:3.10 or /var/lib/lxc/mycontainer/rootfs" style="width:100%; padding:0.5rem; margin:0.5rem 0; box-sizing:border-box;" />
     <p style="margin:0.5rem 0 0.25rem 0;"><strong>From source (binary):</strong></p>
     <p id="cliCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.25rem 0; word-break:break-all;"></p>
     <button type="button" id="copyCli" style="margin:0.25rem 0; padding:0.25rem 0.5rem; display:none;">Copy command</button>
@@ -61,15 +69,32 @@
   <script>
     var drop = document.getElementById('dropzone');
     var input = document.getElementById('imageRef');
+    var modeSelect = document.getElementById('scanMode');
     var out = document.getElementById('cliCommand');
     var dockerOut = document.getElementById('dockerCommand');
     var copyCli = document.getElementById('copyCli');
     var copyDocker = document.getElementById('copyDocker');
+    function updatePlaceholder() {
+      var m = modeSelect.value;
+      input.placeholder = m === 'image' ? 'e.g. alpine:3.10 or ghcr.io/org/image:tag' : m === 'lxc' ? 'e.g. mycontainer' : 'e.g. /var/lib/lxc/mycontainer/rootfs';
+    }
     function setRef(ref) {
       ref = (ref || '').trim();
       input.value = ref;
-      var cli = ref ? 'scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv' : '';
-      var docker = ref ? 'docker run --rm -v %CD%\\reports:/reports scanner:latest scan --image ' + ref + ' --output-dir /reports --format sarif,markdown,html,csv' : '';
+      var m = modeSelect.value;
+      var cli = '', docker = '';
+      if (ref) {
+        if (m === 'image') {
+          cli = 'scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
+          docker = 'docker run --rm -v %CD%\\reports:/reports scanner:latest scan --image ' + ref + ' --output-dir /reports --format sarif,markdown,html,csv';
+        } else if (m === 'lxc') {
+          cli = 'scanner scan --lxc ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
+          docker = 'docker run --rm -v /var/lib/lxc:/var/lib/lxc:ro -v %CD%\\reports:/reports scanner:latest scan --fs /var/lib/lxc/' + ref + '/rootfs --output-dir /reports --format sarif,markdown,html,csv';
+        } else {
+          cli = 'scanner scan --fs ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
+          docker = 'docker run --rm -v ' + ref.replace(/\\/g, '/') + ':/fs:ro -v %CD%\\reports:/reports scanner:latest scan --fs /fs --output-dir /reports --format sarif,markdown,html,csv';
+        }
+      }
       out.textContent = cli ? 'Run: ' + cli : '';
       dockerOut.textContent = docker ? 'Run: ' + docker : '';
       copyCli.style.display = cli ? 'inline-block' : 'none';
@@ -77,6 +102,8 @@
       copyCli.dataset.text = cli;
       copyDocker.dataset.text = docker;
     }
+    modeSelect.addEventListener('change', function() { updatePlaceholder(); setRef(input.value); });
+    updatePlaceholder();
     drop.addEventListener('dragover', function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; drop.style.background = '#e0f0ff'; });
     drop.addEventListener('dragleave', function() { drop.style.background = '#f0f8ff'; });
     drop.addEventListener('drop', function(e) {

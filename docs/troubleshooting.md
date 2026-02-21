@@ -11,6 +11,14 @@
 - Or run the [install-deps script](getting-started.md#install-dependencies-from-source) for your OS, or run the scanner via Docker: `docker run --rm -v $(pwd)/reports:/reports scanner:latest scan --image <ref> --output-dir /reports` (the scanner image includes Trivy).
 - If Trivy is installed but not in PATH, see [Help — Adding tools to your PATH](HELP.md#adding-tools-to-your-path).
 
+### "no podman socket found" / Podman not used
+
+**Cause:** You are using Podman and Trivy cannot find the Podman socket, so it may fall back to Docker or fail.
+
+**Fix:**
+- Start the Podman socket so Trivy can list and inspect images. On Linux: `systemctl --user enable --now podman.socket` (or the system-wide socket if you run Podman as root).
+- Ensure the image was pulled with Podman (e.g. `podman pull <image>`). Then run `scanner scan --image <ref>` as usual. The scanner does not need separate “Podman mode”; Trivy uses Podman when the socket is available.
+
 ### "Could not pull image" / "unauthorized"
 
 **Cause:** Registry auth failed (private image or baseline image).
@@ -89,6 +97,12 @@ Use an image built for scanner testing so you can stress-test reports and CI:
 ```bash
 scanner scan --image ghcr.io/chainguard-dev/maxcve/maxcve:latest --output-dir ./reports --format sarif,markdown,html
 ```
+
+### Scanning LXC or a root filesystem
+
+**Usage:** Use `--fs <path>` to scan a root filesystem (e.g. an LXC container’s rootfs), or on Linux `--lxc <container_name>` to scan `/var/lib/lxc/<name>/rootfs`. You must **not** use `--image` together with `--fs`/`--lxc`; they are mutually exclusive. `--dockerfile` is only valid with `--image`.
+
+**Permission:** Scanning a path on disk may require read access to that directory (e.g. run with sufficient privileges to read `/var/lib/lxc/.../rootfs`).
 
 ### Why do I only see one (or few) findings? Is the rest of the image clean?
 

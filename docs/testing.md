@@ -6,6 +6,7 @@
 |------|--------|--------------|--------|
 | **Unit** | ✅ In place | Tests scanner (Trivy JSON → findings), remediate (enrichment), report (SARIF/MD/HTML), policy (fail-on-severity, fail-on-count) with mocks/fixtures. No Trivy or Docker. | `pkg/scanner`, `pkg/remediate`, `pkg/report`, `pkg/policy` |
 | **Integration** | ✅ In place | Full pipeline (scan → enrich → report) against a real image (`alpine:3.10`) using Trivy. Gated by `integration` build tag. | `tests/integration/` |
+| **Integration (config)** | ✅ In place | Same as above with options loaded from a config file: write `scanner.yaml`, load via `pkg/config`, run scan → enrich → report; asserts reports are written. Emulates workflow with config. Run: `go test -tags=integration ./tests/integration/... -run TestScanWithConfig -v` | `tests/integration/scan_with_config_test.go` |
 | **Baseline (manual)** | ✅ In place | Scan many images (100+ or a list), get summary CSV/MD and dashboard. Run manually; not automated. | `go run ./cmd/baseline`; see [Baseline](baseline.md) |
 | **Sanity checklist** | ✅ In place | Pre-PR/release: `go mod tidy`, `go vet`, build CLI + baseline, unit tests, optional integration. | [Sanity checklist](sanity.md) |
 | **Baseline smoke (CI)** | 📋 Planned | Run baseline with a small limit (e.g. 2 images) in CI to ensure baseline code path and report generation work. Requires Trivy (and optionally Docker) in the runner. | Not yet; add job that runs baseline with `BASELINE_LIMIT=2` |
@@ -115,6 +116,19 @@ To check for **gaps in testing** and scanner behavior across many images, run th
 | Unit only      | `go test ./pkg/...`                          | Not required   |
 | Integration    | `go test -tags=integration ./tests/integration/...` | Trivy in PATH; Docker optional |
 | Baseline (100+ images) | `go run ./cmd/baseline` | Trivy in PATH; see [Baseline](baseline.md) |
+| Workflow test (few images, multi-registry) | `scripts/run-workflow-test.ps1` or `run-workflow-test.sh` (optionally with `-PullFirst` / `--pull-first`) | Pull old+new images from Docker Hub, GHCR, Quay, Red Hat, Chainguard; scan each with config; reports in `reports/wf-*.md`. See [Baseline — Workflow test](baseline.md#workflow-test-pull--scan-with-config). |
 | Sanity (pre-PR) | See [Sanity checklist](sanity.md) | Go required; Trivy optional for integration |
 | Setup + all    | `scripts\setup-and-test.ps1` (Windows)      | Installs Go + Trivy if missing |
 | Windows no PATH | `scripts\run-tests.bat` or `scripts\run-scan-local.bat` | Uses Trivy/Go from known paths |
+
+## Manual verification (config file, MCP, IDE)
+
+No automated tests yet for (a) CLI with config file end-to-end, (b) MCP server calling `scan_image` with a real image, or (c) IDE extensions running a scan. To verify after changes:
+
+| What | How |
+|------|-----|
+| **Config file** | From a directory containing `scanner.yaml` (or `scanner.yaml.example` copied to `scanner.yaml`), run `scanner scan --image alpine:latest`. Check that reports appear in the `output-dir` from the config and that severity/format match the file. |
+| **MCP server** | Run `go run ./cmd/mcp-server` and connect with an MCP client (e.g. Cursor); call tool `scan_image` with `{"image":"alpine:latest"}`. Check that the JSON result has `ok: true` and `findings_count` / `report_dir`. |
+| **IDE extensions** | In VS Code/Cursor, install the extension from `ide/vscode` (F5 development host), run **Docker Scanner: Scan image** and enter `alpine:latest`; confirm output in the Docker Scanner channel. For JetBrains, build the plugin from `ide/jetbrains`, install from disk, then **Tools → Scan image with Docker Scanner** and confirm Run window output. |
+
+Integration test `TestScanWithConfig` covers the **workflow with config-loaded options** (config file → options → scan → enrich → report) and pulls the same image as `TestScanRealImage` (`alpine:3.10`).
