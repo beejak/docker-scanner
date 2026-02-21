@@ -137,7 +137,10 @@ Go to [Troubleshooting](troubleshooting.md). There we list common errors, what t
 | Scan a Dockerfile as well as the image | Use `--dockerfile path/to/Dockerfile`; see [CLI reference](cli-reference.md) |
 | Add the scanner to my pipeline (Azure, GitHub, etc.) | [CI/CD primer](ci-cd-primer.md) |
 | Run a baseline (many images) | [Baseline](baseline.md) |
+| See where image lists come from (registries, sites) | [Image sources](image-sources.md) |
+| Own hardened image repo; local/private registry; microservices | [Hardened images and local registries](hardened-images-and-local-registries.md) |
 | Clean up images after a baseline | [Baseline — After the run](baseline.md#after-the-run-results-and-cleanup); [Cleaning up](#cleaning-up-after-a-baseline) above |
+| Run sanity checks before a PR | [Sanity checklist](sanity.md) |
 | Fix an error | [Troubleshooting](troubleshooting.md) |
 | Make the pipeline fail on Critical/High | Use `--fail-on-severity CRITICAL,HIGH`; see [CLI reference](cli-reference.md) |
 | See how we compare to other scanners | [Comparison](COMPARISON.md) |

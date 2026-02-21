@@ -1,0 +1,49 @@
+# Container images from registries other than Docker Hub
+# Use for baseline variety and to avoid Docker Hub rate limits.
+# Set BASELINE_IMAGES=tests/baseline/images-other-registries.txt (optionally with BASELINE_LIMIT).
+# Auth: some registries allow anonymous pull; for private images use docker login <registry>.
+
+# --- GitHub Container Registry (ghcr.io) ---
+# Public images; often no strict rate limit for anonymous pull.
+ghcr.io/nginxinc/nginx-unprivileged:alpine
+ghcr.io/containerbase/node:18.18.0
+ghcr.io/containerbase/buildpack:latest
+ghcr.io/actions/runner:latest
+ghcr.io/chainguard-dev/maxcve/maxcve:latest
+ghcr.io/chainguard-images/alpine:latest
+ghcr.io/chainguard-images/nginx:latest
+ghcr.io/chainguard-images/static:latest
+ghcr.io/chainguard-images/wolfi-base:latest
+
+# --- Chainguard (cgr.dev) ---
+# Minimal/distroless; same vendor as Chainguard Images on Docker Hub.
+cgr.dev/chainguard/alpine:latest
+cgr.dev/chainguard/nginx:latest
+cgr.dev/chainguard/static:latest
+cgr.dev/chainguard/wolfi-base:latest
+cgr.dev/chainguard/python:latest
+cgr.dev/chainguard/go:latest
+cgr.dev/chainguard/node:latest
+
+# --- Quay.io ---
+# Red Hat / community; many OSS projects. Some repos require auth.
+quay.io/prometheus/prometheus:latest
+quay.io/prometheus/node-exporter:latest
+quay.io/coreos/etcd:latest
+quay.io/openshift/origin-cli:latest
+quay.io/keycloak/keycloak:latest
+quay.io/operator-framework/ansible-operator:latest
+
+# --- Red Hat / UBI (registry.access.redhat.com) ---
+# Red Hat Universal Base Images; public for pull.
+registry.access.redhat.com/ubi8/ubi-minimal:latest
+registry.access.redhat.com/ubi8/ubi:latest
+registry.access.redhat.com/ubi9/ubi-minimal:latest
+registry.access.redhat.com/ubi8/ubi-micro:latest
+
+# --- Google (gcr.io) ---
+# Some legacy public images; newer Artifact Registry often requires auth.
+# Uncomment if you have access or use a service account.
+# gcr.io/google-samples/hello-app:1.0
+# gcr.io/distroless/static:nonroot
+# gcr.io/google-containers/pause:3.9

@@ -1,5 +1,22 @@
 # Testing
 
+## Test types (current and planned)
+
+| Type | Status | What it does | Where |
+|------|--------|--------------|--------|
+| **Unit** | ✅ In place | Tests scanner (Trivy JSON → findings), remediate (enrichment), report (SARIF/MD/HTML), policy (fail-on-severity, fail-on-count) with mocks/fixtures. No Trivy or Docker. | `pkg/scanner`, `pkg/remediate`, `pkg/report`, `pkg/policy` |
+| **Integration** | ✅ In place | Full pipeline (scan → enrich → report) against a real image (`alpine:3.10`) using Trivy. Gated by `integration` build tag. | `tests/integration/` |
+| **Baseline (manual)** | ✅ In place | Scan many images (100+ or a list), get summary CSV/MD and dashboard. Run manually; not automated. | `go run ./cmd/baseline`; see [Baseline](baseline.md) |
+| **Sanity checklist** | ✅ In place | Pre-PR/release: `go mod tidy`, `go vet`, build CLI + baseline, unit tests, optional integration. | [Sanity checklist](sanity.md) |
+| **Baseline smoke (CI)** | 📋 Planned | Run baseline with a small limit (e.g. 2 images) in CI to ensure baseline code path and report generation work. Requires Trivy (and optionally Docker) in the runner. | Not yet; add job that runs baseline with `BASELINE_LIMIT=2` |
+| **Install / script sanity** | 📋 Planned | In CI or nightly: run install-deps (or use Docker) and then run one scan to confirm “install → scan → report” works. Catches script and PATH issues. | Not yet; add job or document manual run |
+| **KEV / enrichment** | 📋 Optional | Unit tests for CISA KEV lookup and “Exploitable” enrichment (e.g. mock HTTP or fixture). Currently `pkg/kev` has no test files. | `pkg/kev` |
+| **E2E / CLI exit code** | 📋 Optional | Test CLI exit code and stderr for `--fail-on-severity` and `--fail-on-count` (e.g. run scanner with known-failing image and assert exit 1). | Not yet |
+
+Use **unit** and **integration** for day-to-day development. Use the [sanity checklist](sanity.md) before PRs. Add **baseline smoke** and **install sanity** in CI when you set up workflows.
+
+---
+
 ## Unit tests
 
 Unit tests cover the scanner (Trivy JSON → findings), remediate (enrichment), report (SARIF/Markdown/HTML), and policy (fail-on-severity, fail-on-count). No Trivy or Docker required.
@@ -98,5 +115,6 @@ To check for **gaps in testing** and scanner behavior across many images, run th
 | Unit only      | `go test ./pkg/...`                          | Not required   |
 | Integration    | `go test -tags=integration ./tests/integration/...` | Trivy in PATH; Docker optional |
 | Baseline (100+ images) | `go run ./cmd/baseline` | Trivy in PATH; see [Baseline](baseline.md) |
+| Sanity (pre-PR) | See [Sanity checklist](sanity.md) | Go required; Trivy optional for integration |
 | Setup + all    | `scripts\setup-and-test.ps1` (Windows)      | Installs Go + Trivy if missing |
 | Windows no PATH | `scripts\run-tests.bat` or `scripts\run-scan-local.bat` | Uses Trivy/Go from known paths |

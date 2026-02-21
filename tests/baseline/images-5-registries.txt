@@ -1,0 +1,18 @@
+# One image per registry — for "run scanner on 5 registries"
+# 1. Docker Hub  2. GitHub (ghcr.io)  3. Chainguard (cgr.dev)  4. Quay.io  5. Red Hat
+# Uses refs that pull without auth; chainguard/alpine and chainguard-images/alpine can be Forbidden.
+
+# Docker Hub (library)
+alpine:latest
+
+# GitHub Container Registry (use nginx; alpine can be Forbidden)
+ghcr.io/chainguard-images/nginx:latest
+
+# Chainguard (use wolfi-base; alpine can fail)
+cgr.dev/chainguard/wolfi-base:latest
+
+# Quay.io
+quay.io/prometheus/prometheus:latest
+
+# Red Hat UBI
+registry.access.redhat.com/ubi8/ubi-minimal:latest

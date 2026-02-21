@@ -1,0 +1,65 @@
+# Obscure / older images — for scanner coverage on legacy and low-profile refs
+# Source reference: docs/image-sources.md
+# Use: BASELINE_IMAGES=tests/baseline/images-obscure.txt (optionally BASELINE_LIMIT, BASELINE_RANDOM=1).
+
+# --- Docker Hub: older official tags (hub.docker.com/_/IMAGE/tags) ---
+# Alpine: https://hub.docker.com/_/alpine/tags
+alpine:3.5
+alpine:3.6
+alpine:3.7
+
+# Debian: https://hub.docker.com/_/debian/tags — stretch/jessie are old
+debian:stretch
+debian:stretch-slim
+debian:jessie
+debian:jessie-slim
+
+# Ubuntu: https://hub.docker.com/_/ubuntu/tags
+ubuntu:16.04
+ubuntu:18.04
+ubuntu:20.04
+
+# Busybox: https://hub.docker.com/_/busybox/tags
+busybox:1.28
+busybox:1.30
+
+# Older app stacks (Docker Hub library)
+node:12-alpine
+node:14-alpine
+python:3.7-alpine
+python:3.8-alpine
+redis:5-alpine
+nginx:1.18-alpine
+nginx:1.19-alpine
+postgres:11-alpine
+postgres:12-alpine
+php:7.3-alpine
+php:7.4-cli-alpine
+golang:1.17-alpine
+golang:1.18-bullseye
+ruby:2.6-alpine
+ruby:2.7-alpine
+
+# --- GitHub Container Registry (ghcr.io) — see docs/image-sources.md ---
+# Browse org/repo Packages; no single directory.
+ghcr.io/nginxinc/nginx-unprivileged:alpine
+ghcr.io/containerbase/node:18.18.0
+ghcr.io/chainguard-images/nginx:latest
+ghcr.io/chainguard-images/wolfi-base:latest
+
+# --- Quay.io — https://quay.io/ (search by org) ---
+quay.io/prometheus/prometheus:v2.45.0
+quay.io/prometheus/node-exporter:latest
+quay.io/coreos/etcd:v3.5.9
+
+# --- Amazon ECR Public — https://gallery.ecr.aws/ ---
+# Docker Official Images mirror; anonymous pull.
+public.ecr.aws/docker/library/alpine:3.18
+public.ecr.aws/docker/library/alpine:3.16
+public.ecr.aws/docker/library/nginx:alpine
+public.ecr.aws/docker/library/busybox:latest
+public.ecr.aws/docker/library/debian:bullseye-slim
+
+# --- Red Hat UBI (older or alternate) — registry.access.redhat.com ---
+registry.access.redhat.com/ubi8/ubi-minimal:8.8
+registry.access.redhat.com/ubi9/ubi-minimal:latest

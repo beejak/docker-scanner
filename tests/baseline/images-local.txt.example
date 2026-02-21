@@ -1,0 +1,9 @@
+# Example list for images from a local or private registry
+# Copy to images-local.txt and fill in your refs. After docker login <your-registry>, run:
+#   BASELINE_IMAGES=tests/baseline/images-local.txt go run ./cmd/baseline
+# See docs/hardened-images-and-local-registries.md and docs/image-sources.md.
+
+# Replace with your registry host and image refs, e.g.:
+# myregistry.company.com/myteam/api:v1
+# harbor.myteam.io/project/worker:latest
+# localhost:5000/internal/base-node:hardened

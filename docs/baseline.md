@@ -39,11 +39,29 @@ Scans run in parallel (default 5 workers). Each worker uses its own Trivy cache 
 
 ## Image lists
 
-- **`tests/baseline/images.txt`** – default: 100+ well-known official images (Alpine, Debian, Ubuntu, Busybox, Node, Python, Redis, Nginx, Postgres, etc.) plus a hardened section. One image per line; `#` for comments.
+- **`tests/baseline/images.txt`** – default: 100+ well-known official images from **Docker Hub** (Alpine, Debian, Ubuntu, Busybox, Node, Python, Redis, Nginx, Postgres, etc.) plus a hardened section. One image per line; `#` for comments.
 - **`tests/baseline/images-hardened.txt`** – optional: hardened/minimal images (Chainguard, Red Hat UBI). Use with `BASELINE_IMAGES_HARDENED` and `BASELINE_HARDENED_LIMIT`.
-- **`tests/baseline/images-lesser-known.txt`** – optional: lower-profile images (older tags, fewer pulls). Use for variety: set `BASELINE_IMAGES=tests/baseline/images-lesser-known.txt` (optionally with `BASELINE_LIMIT` and `BASELINE_RANDOM=1`).
+- **`tests/baseline/images-lesser-known.txt`** – optional: lower-profile images (older tags, fewer pulls) from Docker Hub. Use for variety: set `BASELINE_IMAGES=tests/baseline/images-lesser-known.txt` (optionally with `BASELINE_LIMIT` and `BASELINE_RANDOM=1`).
+- **`tests/baseline/images-other-registries.txt`** – optional: images from **other registries** (GitHub Container Registry, Quay.io, Chainguard, Red Hat). Use to avoid Docker Hub rate limits or to test multi-registry. Set `BASELINE_IMAGES=tests/baseline/images-other-registries.txt` (optionally with `BASELINE_LIMIT`). See [Other registries](#other-registries) below.
+- **`tests/baseline/images-obscure.txt`** – optional: **older / obscure** tags and repos (Docker Hub old tags, GHCR, Quay, ECR Public, Red Hat). Use to test scanner on legacy and low-profile images. Set `BASELINE_IMAGES=tests/baseline/images-obscure.txt` (optionally with `BASELINE_LIMIT`, `BASELINE_RANDOM=1`). Some tags may no longer be available.
+
+**Where images come from:** All registries, sites, and repos are documented in [Image sources](image-sources.md). When adding or changing image lists, update that file and reference it in list comments.
 
 Use `BASELINE_RANDOM=1` and `BASELINE_LIMIT=10` to pick 10 random images from the chosen list (or from main + hardened when `BASELINE_IMAGES_HARDENED` is set).
+
+## Other registries
+
+Using images from registries other than Docker Hub can help with **rate limits** (Docker Hub throttles anonymous pulls) and **variety** (different vendors, minimal images, OSS projects).
+
+| Registry | Examples | Auth / notes |
+|----------|----------|--------------|
+| **GitHub Container Registry (ghcr.io)** | `ghcr.io/nginxinc/nginx-unprivileged:alpine`, `ghcr.io/chainguard-images/alpine:latest` | Public images often pullable without auth; good for CI. |
+| **Chainguard (cgr.dev)** | `cgr.dev/chainguard/alpine:latest`, `cgr.dev/chainguard/nginx:latest` | Minimal/distroless; public. |
+| **Quay.io** | `quay.io/prometheus/prometheus:latest`, `quay.io/coreos/etcd:latest` | Red Hat / community; many OSS projects; some repos require auth. |
+| **Red Hat (registry.access.redhat.com)** | `registry.access.redhat.com/ubi8/ubi-minimal:latest` | UBI images; public for pull. |
+| **Google (gcr.io)** | Legacy public images; newer Artifact Registry often requires auth. | Use `docker login` or service account if needed. |
+
+Use the list **`tests/baseline/images-other-registries.txt`** to run a baseline against a mix of these. For private images, run `docker login <registry>` (or set up CI secrets) before pulling.
 
 ## Testing multiple microservices / one image per service
 

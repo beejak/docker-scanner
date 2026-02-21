@@ -29,7 +29,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 
 **Avoid overwriting reports:** Use `--timestamp` so each run writes unique files (e.g. `report-20060102-150405.html`). Reports can also be CSV (`--format csv`); for PDF, use the browser “Print to PDF” on the HTML report.
 
-**Baseline (100+ images):** Run `go run ./cmd/baseline` from repo root to scan 100+ images in parallel and get a report with findings count and **Duration (s)** per image. See [Baseline](docs/baseline.md).
+**Baseline (100+ images):** Run `go run ./cmd/baseline` from repo root to scan 100+ images in parallel and get a report with findings count and **Duration (s)** per image. Use images from **other registries** (GitHub ghcr.io, Quay.io, Chainguard cgr.dev, Red Hat) to avoid Docker Hub rate limits: set `BASELINE_IMAGES=tests/baseline/images-other-registries.txt`. See [Baseline](docs/baseline.md).
 
 **Drag-and-drop:** Open **`web/index.html`** in your browser. Drop or paste an image reference (e.g. `alpine:3.10`) and the page shows the **CLI** and **Docker** commands with a **Copy** button—no typing needed.
 
@@ -62,7 +62,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 - **Windows — install Go + Trivy and run all tests**: `.\scripts\setup-and-test.ps1` (uses winget or portable installs if needed)
 - **Windows without PATH**: `scripts\run-tests.bat` (sets Trivy/Go from known locations, then runs unit + integration tests)
 
-See [Testing](docs/testing.md) for details.
+See [Testing](docs/testing.md) for details. Before a PR or release, run the [Sanity checklist](docs/sanity.md) (`go mod tidy`, `go vet`, build, unit tests, optional integration).
 
 ## Documentation
 
@@ -72,6 +72,8 @@ See [Testing](docs/testing.md) for details.
 - [CI/CD primer](docs/ci-cd-primer.md) — Add the scanner to non‑prod pipelines (layman-friendly). Pipeline templates in `ci/`.
 - [Troubleshooting](docs/troubleshooting.md) — Common errors and fixes.
 - [Baseline](docs/baseline.md) — 100+ image scan, timing report, baseline for product quality.
+- [Image sources](docs/image-sources.md) — Registries, sites, and repos we reference for all image lists; update when adding new sources.
+- [Hardened images and local registries](docs/hardened-images-and-local-registries.md) — What hardened images are, your own repo for local use, microservices, and pulling from local/private registries.
 - [Vulnerability reports](docs/vulnerability-reports.md) — Exploitable (CISA KEV), why severity, exploit info, and how to use them.
 - [Testing](docs/testing.md) — Unit and integration tests.
 - [System design](docs/system-design.md) — Architecture, data flow, deployment.
