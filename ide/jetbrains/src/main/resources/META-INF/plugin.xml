@@ -1,0 +1,17 @@
+<idea-plugin>
+  <id>com.dockerscanner.plugin</id>
+  <name>Docker Scanner</name>
+  <vendor>Docker Scanner</vendor>
+  <description>Scan container images for vulnerabilities. Runs the docker-scanner CLI and shows output in the Run window.</description>
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+  </extensions>
+  <actions>
+    <action id="DockerScanner.ScanImage"
+            class="com.dockerscanner.ScanImageAction"
+            text="Scan image with Docker Scanner"
+            description="Run vulnerability scan on a container image">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

@@ -38,6 +38,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 - **Scan after build**: Run in pipeline right after `docker build`; scan image and optional Dockerfile (`--dockerfile`); SARIF + Markdown/HTML/CSV reports.
 - **Remediation**: Per-finding fix guidance (upgrade path, base image, CVE links).
 - **CI/CD**: Azure DevOps, GitHub Actions, GitLab CI, Jenkins; same CLI, same reports.
+- **Config file**: `scanner.yaml` or `.scanner.yaml` in the current directory (or `--config <path>`) for default severity, format, output-dir, and fail-on policy; CLI flags override. See [CLI reference](docs/cli-reference.md#config-file).
 - **Offline**: `--offline` with pre-populated cache; no network for DB or enrichment.
 - **Baseline (optional)**: Compare to a reference image (e.g. Docker Hardened Images); report/fail on delta only.
 - **Web**: Open `web/index.html` for drag-and-drop: paste or drop an image ref and get CLI + Docker commands with Copy button. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
@@ -47,6 +48,7 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 
 - `cmd/cli` — CLI entrypoint (`scan`, `db update`, optional `serve`).
 - `cmd/server` — Optional HTTP server for Web UI.
+- `pkg/config` — Load `scanner.yaml` / `.scanner.yaml` for default scan options.
 - `pkg/scanner` — Invoke Trivy, parse output into internal finding model.
 - `pkg/remediate` — Enrich findings with fix text (Trivy + OSV or rules).
 - `pkg/report` — SARIF + Markdown/HTML generation.
@@ -74,6 +76,7 @@ See [Testing](docs/testing.md) for details. Before a PR or release, run the [San
 - [Baseline](docs/baseline.md) — 100+ image scan, timing report, baseline for product quality.
 - [Image sources](docs/image-sources.md) — Registries, sites, and repos we reference for all image lists; update when adding new sources.
 - [Hardened images and local registries](docs/hardened-images-and-local-registries.md) — What hardened images are, your own repo for local use, microservices, and pulling from local/private registries.
+- [IDE plugins and MCP server](docs/ide-and-mcp.md) — VS Code/Cursor extension, JetBrains plugin, and MCP server for AI assistants.
 - [Vulnerability reports](docs/vulnerability-reports.md) — Exploitable (CISA KEV), why severity, exploit info, and how to use them.
 - [Testing](docs/testing.md) — Unit and integration tests.
 - [System design](docs/system-design.md) — Architecture, data flow, deployment.

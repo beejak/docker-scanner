@@ -1,0 +1,13 @@
+# Example scanner config: scanner.yaml or .scanner.yaml
+# Place in project root (or pass --config path). CLI flags override these values.
+# No secrets; use for default severity, format, output paths, and fail-on policy.
+
+severity: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN
+format: sarif,markdown,html
+output-dir: ./reports
+output-name: report
+# cache-dir: ""   # leave empty for Trivy default
+
+# Optional: fail the pipeline when findings match (CI)
+# fail-on-severity: CRITICAL,HIGH
+# fail-on-count: HIGH:5

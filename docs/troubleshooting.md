@@ -44,6 +44,15 @@
 - Open the report in `--output-dir` and fix the listed findings (upgrade packages, change base image, etc.), then run the scan again.
 - Or relax the policy: use fewer severities in `--fail-on-severity` (e.g. only `CRITICAL`) or a higher count in `--fail-on-count` (e.g. `HIGH:10`). Remove the flag(s) to never fail and only produce reports.
 
+### Config file not applied or "Config ... : no such file"
+
+**Cause:** You expect options from `scanner.yaml` or `.scanner.yaml` but the scanner is using defaults, or you passed `--config <path>` and the path is wrong.
+
+**Fix:**
+- The scanner looks for **`scanner.yaml`** or **`.scanner.yaml`** in the **current working directory** when you run it. Run the scanner from the directory that contains the file, or pass `--config /path/to/scanner.yaml`.
+- CLI flags **override** config. If you pass `--output-dir ./reports` on the command line, that wins over `output-dir` in the config.
+- See [CLI reference — Config file](cli-reference.md#config-file) for supported keys and an example.
+
 ### "dockerfile not found" or "parse trivy config json" error
 
 **Cause:** The path passed to `--dockerfile` does not exist, or Trivy config output format changed.

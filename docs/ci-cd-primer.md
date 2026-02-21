@@ -58,6 +58,8 @@ Build image  →  (optional) docker login with secret  →  Run scanner  →  Pu
 
 Replace `<YOUR_IMAGE>` with the image you just built (e.g. `myapp:latest` or the full tag your pipeline uses).
 
+**Config file (optional):** You can put a **`scanner.yaml`** (or `.scanner.yaml`) in your repo with default `severity`, `format`, `output-dir`, or `fail-on-severity`. The pipeline step then only needs `--image <ref>`; the rest come from the config. See [CLI reference — Config file](cli-reference.md#config-file).
+
 ---
 
 ## Where reports go

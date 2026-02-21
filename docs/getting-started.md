@@ -83,7 +83,7 @@ For fresher vulnerability data, update Trivy’s database about once a day:
 ## Next steps
 
 - **[Help (plain language)](HELP.md)** — What is this? PATH, Trivy DB update, drag-and-drop, baseline and cleanup.
-- [CLI reference](cli-reference.md) — All commands and flags.
+- [CLI reference](cli-reference.md) — All commands and flags, including **config file** (`scanner.yaml` / `.scanner.yaml`) for default severity, format, and output-dir.
 - [CI/CD primer](ci-cd-primer.md) — Add the scanner to your pipeline.
 - [Baseline](baseline.md) — Scan many images and get a summary + dashboard.
 - [Troubleshooting](troubleshooting.md) — Common errors and fixes.

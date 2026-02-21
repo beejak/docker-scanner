@@ -29,7 +29,7 @@ Unbiased comparison of this project against free and paid container image scanne
 | **CI/CD integration** | Yes (Azure, GitHub, GitLab, Jenkins) | Yes (native + actions) | Yes | Yes (native) | Yes (Docker ecosystem) | Yes |
 | **Severity filter** | Yes | Yes | Yes | Yes | Yes | Yes |
 | **Fail pipeline on severity** | Yes (`--fail-on-severity`, `--fail-on-count`) | Yes (`--exit-code 1`) | Yes | Yes | Yes (policy) | Yes (policy) |
-| **Config file** | Planned | Yes | Yes (`.grype.yaml`) | Yes | Yes | Yes |
+| **Config file** | Yes (`scanner.yaml`, `.scanner.yaml`, `--config`) | Yes | Yes (`.grype.yaml`) | Yes | Yes | Yes |
 | **Ignore / suppression** | Planned | Yes (VEX, Rego) | Yes (`.grype.yaml`) | Yes | Yes (policy) | Yes |
 | **Offline mode** | Yes (`--offline`) | Yes | Yes | Limited | Limited | Yes |
 | **Baseline / image comparison** | Planned | No (manual diff) | No | Custom base image (Enterprise) | Yes (image comparison) | Yes |
@@ -74,7 +74,7 @@ Unbiased comparison of this project against free and paid container image scanne
 ### High impact (do soon)
 
 1. ~~**Fail-on policy**~~ — **Done.** `--fail-on-severity` and `--fail-on-count`; exit 1 when policy violated. Matches Trivy/Grype/Snyk/Scout.
-2. **Config file** — `scanner.yaml` for default severity, format, output-dir, cache-dir. Matches Trivy/Grype and reduces CI repetition.
+2. **Config file** — Done. `scanner.yaml` or `.scanner.yaml` (or `--config`) for default severity, format, output-dir, cache-dir, fail-on. Matches Trivy/Grype and reduces CI repetition.
 3. **Ignore / suppression file** — Allowlist CVEs (and optionally packages) with optional expiry; report suppressed separately. Matches Trivy (VEX) and Grype (`.grype.yaml`).
 4. ~~**Dockerfile scan**~~ — **Done.** When `--dockerfile` is set, run Trivy config and merge misconfigurations with image findings.
 

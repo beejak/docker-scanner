@@ -4,6 +4,18 @@ This page answers common questions in **simple terms**. If you’re new to the s
 
 ---
 
+## How the workflow runs (in short)
+
+1. **You run** the scanner (CLI, Docker, IDE, or MCP) with an image name (and optional Dockerfile path).
+2. **Config (optional):** If there is a `scanner.yaml` or `.scanner.yaml` in the current directory (or you pass `--config <path>`), the scanner loads default options (severity, format, output-dir, fail-on, etc.). Any flags you pass **override** the config.
+3. **Scan:** The scanner runs **Trivy** on the image (and, if you set `--dockerfile`, on the Dockerfile for misconfigurations). Trivy returns a list of findings (CVEs, versions, severity).
+4. **Enrich:** The scanner adds **remediation** (how to fix), **Exploitable** (CISA KEV), and **Why severity** to each finding.
+5. **Report:** It writes the results to files in the output directory (SARIF, Markdown, HTML, CSV—depending on `--format`). If you used `--fail-on-severity` or `--fail-on-count`, it may exit with code 1 so your pipeline fails.
+
+So: **run → (config) → Trivy scan → enrich → write reports (and optionally fail)**.
+
+---
+
 ## What is this?
 
 **Docker Container Scanner** is a tool that **checks a container image for known security problems** (vulnerabilities). It gives you a **report** that lists what it found and **how to fix each one** (for example: “Upgrade this package from version X to version Y”).
@@ -134,9 +146,11 @@ Go to [Troubleshooting](troubleshooting.md). There we list common errors, what t
 | Try drag-and-drop (paste image ref, get command) | [Drag-and-drop: try the web UI](#drag-and-drop-try-the-web-ui) above; open `web/index.html` |
 | Run my first scan | [Getting started](getting-started.md) |
 | Understand every command and option | [CLI reference](cli-reference.md) |
+| Set default options in a file (severity, format, output dir) | Put `scanner.yaml` or `.scanner.yaml` in your project; see [CLI reference — Config file](cli-reference.md#config-file) |
 | Scan a Dockerfile as well as the image | Use `--dockerfile path/to/Dockerfile`; see [CLI reference](cli-reference.md) |
 | Add the scanner to my pipeline (Azure, GitHub, etc.) | [CI/CD primer](ci-cd-primer.md) |
 | Run a baseline (many images) | [Baseline](baseline.md) |
+| Use the scanner from VS Code, Cursor, or JetBrains; or from an AI assistant (MCP) | [IDE plugins and MCP server](ide-and-mcp.md) |
 | See where image lists come from (registries, sites) | [Image sources](image-sources.md) |
 | Own hardened image repo; local/private registry; microservices | [Hardened images and local registries](hardened-images-and-local-registries.md) |
 | Clean up images after a baseline | [Baseline — After the run](baseline.md#after-the-run-results-and-cleanup); [Cleaning up](#cleaning-up-after-a-baseline) above |

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker-scanner/scanner/pkg/config"
 	"github.com/docker-scanner/scanner/pkg/policy"
 	"github.com/docker-scanner/scanner/pkg/remediate"
 	"github.com/docker-scanner/scanner/pkg/report"
@@ -18,6 +19,7 @@ import (
 
 func main() {
 	scanCmd := flag.NewFlagSet("scan", flag.ExitOnError)
+	configPath := scanCmd.String("config", "", "Path to scanner.yaml or .scanner.yaml (default: look in current directory)")
 	image := scanCmd.String("image", "", "Image to scan (e.g. alpine:latest or myregistry.io/app:v1)")
 	dockerfile := scanCmd.String("dockerfile", "", "Optional Dockerfile path")
 	severity := scanCmd.String("severity", "CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN", "Comma-separated severities to include (default: all)")
@@ -39,23 +41,35 @@ func main() {
 	switch os.Args[1] {
 	case "scan":
 		_ = scanCmd.Parse(os.Args[2:])
-		if *image == "" {
+		opts := runScanOpts{
+			image:       *image,
+			dockerfile:  *dockerfile,
+			severity:    splitTrim(*severity, ","),
+			offline:     *offline,
+			cacheDir:    *cacheDir,
+			outputDir:   *outputDir,
+			outputName:  *outputName,
+			timestamp:   *timestamp,
+			format:      splitTrim(*format, ","),
+			failOnSeverity: splitTrim(*failOnSeverity, ","),
+			failOnCount: *failOnCount,
+		}
+		// Apply config file defaults (flags already parsed; config fills only where we use defaults)
+		if path := resolveConfigPath(*configPath); path != "" {
+			cfg, err := config.Load(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Config %s: %v\n", path, err)
+				os.Exit(1)
+			}
+			if cfg != nil {
+				applyConfig(&opts, cfg)
+			}
+		}
+		if opts.image == "" {
 			fmt.Fprintln(os.Stderr, "Error: --image is required")
 			os.Exit(1)
 		}
-		runScan(context.Background(), runScanOpts{
-			image:           *image,
-			dockerfile:      *dockerfile,
-			severity:        splitTrim(*severity, ","),
-			offline:         *offline,
-			cacheDir:        *cacheDir,
-			outputDir:       *outputDir,
-			outputName:      *outputName,
-			timestamp:       *timestamp,
-			format:          splitTrim(*format, ","),
-			failOnSeverity:  splitTrim(*failOnSeverity, ","),
-			failOnCount:     *failOnCount,
-		})
+		runScan(context.Background(), opts)
 	case "db":
 		if len(os.Args) > 2 && os.Args[2] == "update" {
 			// TODO: run Trivy DB update
@@ -120,6 +134,40 @@ func runScan(ctx context.Context, opts runScanOpts) {
 	if shouldFail, reason := policy.EvaluateFailPolicy(enriched, opts.failOnSeverity, opts.failOnCount); shouldFail {
 		fmt.Fprintln(os.Stderr, reason)
 		os.Exit(1)
+	}
+}
+
+// resolveConfigPath returns the config file path: --config if set, else scanner.yaml or .scanner.yaml in cwd.
+func resolveConfigPath(flagPath string) string {
+	if flagPath != "" {
+		return flagPath
+	}
+	cwd, _ := os.Getwd()
+	return config.Find(cwd)
+}
+
+// applyConfig merges config into opts. Only fills fields that still have CLI defaults (so flags override).
+func applyConfig(opts *runScanOpts, cfg *config.Config) {
+	if cfg.Severity != "" && len(opts.severity) == 5 && opts.severity[0] == "CRITICAL" {
+		opts.severity = splitTrim(cfg.Severity, ",")
+	}
+	if cfg.Format != "" && len(opts.format) == 2 && opts.format[0] == "sarif" {
+		opts.format = splitTrim(cfg.Format, ",")
+	}
+	if cfg.OutputDir != "" && opts.outputDir == "./reports" {
+		opts.outputDir = cfg.OutputDir
+	}
+	if cfg.OutputName != "" && opts.outputName == "report" {
+		opts.outputName = cfg.OutputName
+	}
+	if cfg.CacheDir != "" && opts.cacheDir == "" {
+		opts.cacheDir = cfg.CacheDir
+	}
+	if cfg.FailOnSeverity != "" && len(opts.failOnSeverity) == 0 {
+		opts.failOnSeverity = splitTrim(cfg.FailOnSeverity, ",")
+	}
+	if cfg.FailOnCount != "" && opts.failOnCount == "" {
+		opts.failOnCount = cfg.FailOnCount
 	}
 }
 
