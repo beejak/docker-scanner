@@ -116,8 +116,10 @@ To check for **gaps in testing** and scanner behavior across many images, run th
 | Kind           | Command                                      | Trivy / Docker |
 |----------------|----------------------------------------------|----------------|
 | Unit only      | `go test ./pkg/...`                          | Not required   |
+| Unit + race    | `go test ./pkg/... -race`                    | Not required   |
 | Integration    | `go test -tags=integration ./tests/integration/...` | Trivy in PATH; Docker optional |
 | Baseline (100+ images) | `go run ./cmd/baseline` | Trivy in PATH; see [Baseline](baseline.md) |
+| Web UI server  | `go run ./cmd/server` → `http://localhost:8080` | Trivy in PATH; Docker running |
 | Workflow test (few images, multi-registry) | `scripts/run-workflow-test.ps1` or `run-workflow-test.sh` (optionally with `-PullFirst` / `--pull-first`) | Pull old+new images from Docker Hub, GHCR, Quay, Red Hat, Chainguard; scan each with config; reports in `reports/wf-*.md`. See [Baseline — Workflow test](baseline.md#workflow-test-pull--scan-with-config). |
 | Sanity (pre-PR) | See [Sanity checklist](sanity.md) | Go required; Trivy optional for integration |
 | Setup + all    | `scripts\setup-and-test.ps1` (Windows)      | Installs Go + Trivy if missing |
@@ -130,6 +132,7 @@ No automated tests yet for (a) CLI with config file end-to-end, (b) MCP server c
 | What | How |
 |------|-----|
 | **Config file** | From a directory containing `scanner.yaml` (or `scanner.yaml.example` copied to `scanner.yaml`), run `scanner scan --image alpine:latest`. Check that reports appear in the `output-dir` from the config and that severity/format match the file. |
+| **Web UI server** | Run `go run ./cmd/server` from repo root. Open `http://localhost:8080`. Paste `alpine:latest` and click Scan. Verify: (1) progress log streams status messages; (2) summary cards populate when scan completes; (3) findings table shows CVEs with severity badges; (4) severity filter buttons (Critical/High/Medium/Low) narrow the table; (5) CSV / JSON / Markdown export buttons download files. Also test: enable **Check host runc** and confirm runc advisory findings appear (or "no known CVEs" if patched). Test error path: enter an invalid image ref and confirm the error banner shows. |
 | **MCP server** | Run `go run ./cmd/mcp-server` and connect with an MCP client (e.g. Cursor); call tool `scan_image` with `{"image":"alpine:latest"}`. Check that the JSON result has `ok: true` and `findings_count` / `report_dir`. |
 | **IDE extensions** | In VS Code/Cursor, install the extension from `ide/vscode` (F5 development host), run **Docker Scanner: Scan image** and enter `alpine:latest`; confirm output in the Docker Scanner channel. For JetBrains, build the plugin from `ide/jetbrains`, install from disk, then **Tools → Scan image with Docker Scanner** and confirm Run window output. |
 
