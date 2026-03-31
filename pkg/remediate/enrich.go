@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/docker-scanner/scanner/pkg/kev"
+	"github.com/docker-scanner/scanner/pkg/osv"
 	"github.com/docker-scanner/scanner/pkg/scanner"
 )
 
@@ -25,6 +26,22 @@ func Enrich(findings []scanner.Finding, offline bool) []scanner.Finding {
 				out[i].RemediationText = fmt.Sprintf("Upgrade or patch %s (currently %s); no fixed version in DB", f.Package, f.CurrentVersion)
 			}
 		}
+		// OSV back-fill: for findings with no CVE ID, query OSV to retrieve one.
+		// Skipped in offline mode. Uses the file path as a hint for ecosystem detection.
+		if f.CVEID == "" && f.Package != "" && f.CurrentVersion != "" && !offline {
+			ecosystem := osv.EcosystemFor(f.FilePath)
+			if ecosystem != "" {
+				if results, err := osv.Query(f.Package, f.CurrentVersion, ecosystem); err == nil && len(results) > 0 {
+					r := results[0]
+					out[i].CVEID = r.CVEID
+					out[i].Title = r.Summary
+					if len(out[i].RemediationLinks) == 0 {
+						out[i].RemediationLinks = []string{r.AdvisoryURL}
+					}
+				}
+			}
+		}
+
 		// Ensure we have at least one link for vulns (CVE) or misconfig (AVD ID)
 		if len(f.RemediationLinks) == 0 && f.CVEID != "" {
 			if strings.HasPrefix(strings.ToUpper(f.CVEID), "CVE-") {

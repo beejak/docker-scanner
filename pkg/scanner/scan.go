@@ -62,6 +62,8 @@ func scanRootfs(ctx context.Context, opts ScanOptions) ([]Finding, error) {
 	}
 	if opts.Offline {
 		args = append(args, "--skip-db-update")
+	} else {
+		args = append(args, "--detection-priority", "comprehensive")
 	}
 	if len(opts.Severity) > 0 {
 		args = append(args, "--severity", strings.Join(opts.Severity, ","))
@@ -103,6 +105,9 @@ func scanImage(ctx context.Context, opts ScanOptions) ([]Finding, error) {
 	}
 	if opts.Offline {
 		args = append(args, "--skip-db-update")
+	} else {
+		// Fall back to GitHub Advisory Database for Go/Java stdlib CVEs Trivy misses in default mode.
+		args = append(args, "--detection-priority", "comprehensive")
 	}
 	if len(opts.Severity) > 0 {
 		args = append(args, "--severity", strings.Join(opts.Severity, ","))
@@ -139,6 +144,29 @@ func scanImage(ctx context.Context, opts ScanOptions) ([]Finding, error) {
 		}
 	}
 	return findings, nil
+}
+
+// GenerateSBOM runs a second Trivy pass to produce a CycloneDX SBOM for an image.
+// Only supported for image scans. The SBOM is written to outputPath (.cdx.json).
+func GenerateSBOM(ctx context.Context, opts ScanOptions, outputPath string) error {
+	if opts.Image == "" {
+		return fmt.Errorf("SBOM generation requires --image (not supported for rootfs)")
+	}
+	args := []string{"image", "--format", "cyclonedx", "--output", outputPath}
+	if opts.CacheDir != "" {
+		args = append(args, "--cache-dir", opts.CacheDir)
+	}
+	if opts.Offline {
+		args = append(args, "--skip-db-update")
+	}
+	args = append(args, opts.Image)
+	cmd := exec.CommandContext(ctx, "trivy", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("trivy sbom: %w (stderr: %s)", err, stderr.String())
+	}
+	return nil
 }
 
 // scanDockerfile runs trivy config on the Dockerfile path and returns findings (misconfigurations) mapped to our Finding model.

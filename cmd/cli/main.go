@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/docker-scanner/scanner/pkg/policy"
 	"github.com/docker-scanner/scanner/pkg/remediate"
 	"github.com/docker-scanner/scanner/pkg/report"
+	"github.com/docker-scanner/scanner/pkg/runc"
 	"github.com/docker-scanner/scanner/pkg/scanner"
 )
 
@@ -33,7 +35,9 @@ func main() {
 	timestamp := scanCmd.Bool("timestamp", false, "Append timestamp to report base name so each run writes unique files (e.g. report-20060102-150405.html).")
 	format := scanCmd.String("format", "sarif,markdown", "Comma-separated formats: sarif, markdown, html, csv")
 	failOnSeverity := scanCmd.String("fail-on-severity", "", "Exit with code 1 if any finding has this severity (e.g. CRITICAL,HIGH). Empty = do not fail.")
-	failOnCount := scanCmd.String("fail-on-count", "", "Exit with code 1 if count for severity >= N (e.g. HIGH:5). One rule only.")
+	failOnCount    := scanCmd.String("fail-on-count", "", "Exit with code 1 if count for severity >= N (e.g. HIGH:5). One rule only.")
+	checkRuntime   := scanCmd.Bool("check-runtime", false, "Check host runc version for known container escape CVEs (requires docker or runc in PATH).")
+	sbom           := scanCmd.Bool("sbom", false, "Generate a CycloneDX SBOM alongside the vulnerability report (image scans only).")
 
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "Usage: scanner scan --image <ref> [options]   (Docker/Podman image)")
@@ -55,18 +59,20 @@ func main() {
 			rootfs = "/var/lib/lxc/" + *lxcName + "/rootfs"
 		}
 		opts := runScanOpts{
-			image:       *image,
-			dockerfile:  *dockerfile,
-			rootfs:      rootfs,
-			severity:    splitTrim(*severity, ","),
-			offline:     *offline,
-			cacheDir:    *cacheDir,
-			outputDir:   *outputDir,
-			outputName:  *outputName,
-			timestamp:   *timestamp,
-			format:      splitTrim(*format, ","),
+			image:          *image,
+			dockerfile:     *dockerfile,
+			rootfs:         rootfs,
+			severity:       splitTrim(*severity, ","),
+			offline:        *offline,
+			cacheDir:       *cacheDir,
+			outputDir:      *outputDir,
+			outputName:     *outputName,
+			timestamp:      *timestamp,
+			format:         splitTrim(*format, ","),
 			failOnSeverity: splitTrim(*failOnSeverity, ","),
-			failOnCount: *failOnCount,
+			failOnCount:    *failOnCount,
+			checkRuntime:   *checkRuntime,
+			sbom:           *sbom,
 		}
 		// Apply config file defaults (flags already parsed; config fills only where we use defaults)
 		if path := resolveConfigPath(*configPath); path != "" {
@@ -119,6 +125,8 @@ type runScanOpts struct {
 	format         []string
 	failOnSeverity []string
 	failOnCount    string
+	checkRuntime   bool
+	sbom           bool
 }
 
 func runScan(ctx context.Context, opts runScanOpts) {
@@ -141,6 +149,22 @@ func runScan(ctx context.Context, opts runScanOpts) {
 		fmt.Fprintf(os.Stderr, "\rScan failed: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Prepend host runc advisory findings when requested.
+	if opts.checkRuntime {
+		if runcVer, err := runc.HostVersion(ctx); err == nil && runcVer != "" {
+			runcFindings := runc.AdvisoryFindings(runcVer)
+			if len(runcFindings) > 0 {
+				findings = append(runcFindings, findings...)
+				fmt.Fprintf(os.Stderr, "Host runc %s: %d advisory finding(s) added.\n", runcVer, len(runcFindings))
+			} else {
+				fmt.Fprintf(os.Stderr, "Host runc %s: no known CVEs.\n", runcVer)
+			}
+		} else if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: --check-runtime: %v\n", err)
+		}
+	}
+
 	fmt.Fprintf(os.Stderr, "Scanning %s... enriching...\r", target)
 	enriched := remediate.Enrich(findings, opts.offline)
 	baseName := opts.outputName
@@ -160,6 +184,17 @@ func runScan(ctx context.Context, opts runScanOpts) {
 		os.Exit(1)
 	}
 	fmt.Fprintf(os.Stderr, "\r%60s\n", "") // clear progress line
+
+	// SBOM generation (image scans only; CycloneDX JSON).
+	if opts.sbom && opts.image != "" {
+		sbomPath := filepath.Join(opts.outputDir, baseName+".cdx.json")
+		if err := scanner.GenerateSBOM(ctx, scanOpts, sbomPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: SBOM generation failed: %v\n", err)
+		} else {
+			fmt.Printf("SBOM (CycloneDX): %s\n", sbomPath)
+		}
+	}
+
 	fmt.Printf("Scan complete: %d findings. Reports written to %s\n", len(enriched), opts.outputDir)
 
 	// Fail-on policy: exit 1 if policy is violated so CI can gate the build
