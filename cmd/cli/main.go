@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -47,6 +48,10 @@ func main() {
 		_ = scanCmd.Parse(os.Args[2:])
 		rootfs := *fsPath
 		if rootfs == "" && *lxcName != "" {
+			if !validLXCName(*lxcName) {
+				fmt.Fprintln(os.Stderr, "Error: invalid LXC container name; use only letters, digits, hyphens, and underscores")
+				os.Exit(1)
+			}
 			rootfs = "/var/lib/lxc/" + *lxcName + "/rootfs"
 		}
 		opts := runScanOpts{
@@ -196,6 +201,14 @@ func applyConfig(opts *runScanOpts, cfg *config.Config) {
 	if cfg.FailOnCount != "" && opts.failOnCount == "" {
 		opts.failOnCount = cfg.FailOnCount
 	}
+}
+
+// validLXCName allows only alphanumeric characters, hyphens, and underscores
+// to prevent path traversal via the --lxc flag.
+var lxcNameRE = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+func validLXCName(name string) bool {
+	return len(name) > 0 && lxcNameRE.MatchString(name)
 }
 
 func splitTrim(s, sep string) []string {

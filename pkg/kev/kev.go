@@ -2,6 +2,7 @@ package kev
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -48,13 +49,14 @@ func Load() error {
 		return nil
 	}
 
-	resp, err := http.Get(cisaKEVURL)
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Get(cisaKEVURL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 	var cat kevCatalog
-	if err := json.NewDecoder(resp.Body).Decode(&cat); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 20*1024*1024)).Decode(&cat); err != nil {
 		return err
 	}
 	knownExploited = make(map[string]struct{})
