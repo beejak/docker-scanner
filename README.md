@@ -12,7 +12,7 @@
 
 Scan Docker/Podman images and LXC rootfs for CVEs · Enrich with CISA KEV, OSV.dev, and runc advisories · Output SARIF, Markdown, HTML, CSV, and CycloneDX SBOM · Gate CI/CD pipelines on severity
 
-[Quick Start](#-quick-start) · [Commands](#-command-reference) · [Docker](#-running-with-docker) · [CI/CD](#-cicd-integration) · [Configuration](#-configuration) · [Reports](#-reports--enrichment) · [Docs](docs/)
+[Web UI](#-web-ui) · [Quick Start](#-quick-start) · [Commands](#-command-reference) · [Docker](#-running-with-docker) · [CI/CD](#-cicd-integration) · [Configuration](#-configuration) · [Reports](#-reports--enrichment) · [Docs](docs/)
 
 </div>
 
@@ -31,31 +31,13 @@ scanner scan --image myapp:latest --output-dir ./reports --format sarif,markdown
 - Detects **host runc container escape CVEs** that image scanners can never see (`--check-runtime`)
 - Outputs **SARIF** (Azure/GitHub Security tab), **Markdown**, **HTML**, **CSV**, and **CycloneDX SBOM**
 - Exits non-zero on policy violation so pipelines **fail fast** on Critical/High findings
+- **Web UI** — paste or drop an image name in the browser, get live scan results with no CLI (`go run ./cmd/server`)
 
 ---
 
 ## ⚡ Quick Start
 
-### Option D — Web UI (browser, no CLI needed)
-
-```bash
-# From repo root (Go + Trivy in PATH):
-go run ./cmd/server
-# → Open http://localhost:8080
-```
-
-Paste or drop an image reference (`alpine:latest`, `nginx:1.24`, `ghcr.io/org/app:v2`). The server streams live progress via SSE, enriches findings with CISA KEV and OSV.dev, and renders an interactive findings table in your browser. Export results as CSV, JSON, or Markdown with one click.
-
-```bash
-# Custom port:
-PORT=9090 make serve
-# or
-go run ./cmd/server -port 9090
-```
-
-The server requires Docker and Trivy in PATH (same as the CLI). It accepts one scan at a time to protect memory.
-
----
+> **Browser user?** See [🌐 Web UI](#-web-ui) — paste an image name and get results in your browser with no CLI.
 
 ### Option A — Docker (no Go or Trivy install needed)
 
@@ -564,6 +546,49 @@ runc is the container runtime on the host — not a package inside images — so
 | CVE-2024-21626 | HIGH | 1.1.12 | LEAKY VESSELS: working directory escape via leaked fd |
 
 Findings appear as normal rows in all report formats with `Package=runc` and `Path=host-runtime`.
+
+---
+
+## 🌐 Web UI
+
+No CLI required. Start the server and scan any image from your browser.
+
+```bash
+go run ./cmd/server
+# → http://localhost:8080
+```
+
+Or via Make:
+
+```bash
+make serve           # port 8080
+PORT=9090 make serve # custom port
+```
+
+**What you get:**
+
+| Feature | Detail |
+|---------|--------|
+| Drop zone input | Paste or drag-and-drop an image reference |
+| Live progress log | Status messages stream in real time via SSE |
+| Summary cards | Total · Critical · High · Medium · Low · Exploitable counts |
+| Findings table | CVE (linked to NVD) · Package · Version · Fixed In · Severity badge · Exploitable flag · Remediation |
+| Severity filter | Narrow to Critical / High / Medium / Low with one click |
+| Options | Mode (image or filesystem path) · Severity filter · Check host runc · Offline mode |
+| Export | Download results as **CSV**, **JSON**, or **Markdown** — no server round-trip |
+
+**How it works under the hood:**
+
+```
+Browser → GET /api/scan?image=alpine:latest
+       ← SSE: {"type":"status","message":"Running Trivy..."}
+       ← SSE: {"type":"status","message":"Enriching findings..."}
+       ← SSE: {"type":"complete","findings":[...],"summary":{...}}
+```
+
+The server runs the exact same pipeline as the CLI: Trivy scan → runc advisory (if enabled) → CISA KEV + OSV.dev enrichment → findings returned as JSON. One scan at a time is enforced server-side.
+
+> **Requires:** Go 1.21+ and Trivy in PATH. Docker must be running so Trivy can pull images not already cached locally.
 
 ---
 
