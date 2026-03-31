@@ -65,7 +65,11 @@ On Windows the binary will be `scanner.exe`. You can also use `go run ./cmd/cli`
    On Windows: `.\scanner.exe scan --image alpine:latest --output-dir .\reports`
 
 3. **Open the report**  
-   Reports are written to the folder you gave (`./reports` or `/reports`). Open `report.md` (readable) or `report.html` in a browser. You also get `report.sarif` for Azure/GitHub Security. Reports include **Exploitable** (CISA KEV), **Why severity**, and **Exploit info**; see [Vulnerability reports](vulnerability-reports.md).
+   Reports are written to the folder you gave (`./reports` or `/reports`). Open `report.md` (readable) or `report.html` in a browser. You also get `report.sarif` for Azure/GitHub Security. Reports include **Exploitable** (CISA KEV + OSV.dev), **Why severity**, and **Exploit info**; see [Vulnerability reports](vulnerability-reports.md).
+
+   **Optional extras on your first scan:**
+   - Add `--sbom` to generate a CycloneDX SBOM (`report.cdx.json`) for compliance tooling.
+   - Add `--check-runtime` to check your host runc version for known container escape CVEs.
 
 **Windows without PATH:** If Go and Trivy are not on your PATH, use `scripts\run-scan-local.bat` from the repo root (it uses Trivy/Go from known locations). Reports go to `reports\`.
 

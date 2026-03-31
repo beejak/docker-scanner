@@ -55,6 +55,10 @@ Build image  →  (optional) docker login with secret  →  Run scanner  →  Pu
   - `scan --image <YOUR_IMAGE> --output-dir /reports --format sarif,markdown,html,csv`
 - To **fail the pipeline** if there are Critical or High findings:
   - Add: `--fail-on-severity CRITICAL,HIGH`
+- To generate a **CycloneDX SBOM** (for Dependency-Track, GitHub Dependency Graph, compliance):
+  - Add: `--sbom`
+- To check the **host runc** for known container escape CVEs:
+  - Add: `--check-runtime` (requires `docker` or `runc` in the runner's PATH)
 
 Replace `<YOUR_IMAGE>` with the image you just built (e.g. `myapp:latest` or the full tag your pipeline uses). For scanning a **root filesystem** (e.g. on a host or in LXC), use `--fs <path>` or `--lxc <name>` instead of `--image`; see [CLI reference](cli-reference.md#scan).
 

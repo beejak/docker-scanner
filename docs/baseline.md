@@ -35,7 +35,7 @@ go run ./cmd/baseline
 
 **Running without PATH:** If Go and Trivy are in your PATH, run `go run ./cmd/baseline` from repo root. Otherwise use `scripts\run-baseline.bat`, which sets PATH from common locations (edit TRIVY_DIR/GO_DIR if yours differ). Use `BASELINE_WORKERS=1` to avoid Trivy cache lock; the batch file sets it by default.
 
-Scans run in parallel (default 5 workers). Each worker uses its own Trivy cache dir (`<BASELINE_OUT>/trivy-cache-baseline/w0` … `w4`) to avoid "cache may be in use by another process" errors. Each scan is timed; the report includes a **Duration (s)** column so you can see how long each image took. Findings are enriched with **Exploitable** (CISA KEV), **Why severity**, and **Exploit info** when you run the normal CLI scan; the baseline run aggregates counts and timing so you can spot gaps (e.g. images with many Critical/exploitable findings or slow scans). See [Vulnerability reports](vulnerability-reports.md).
+Scans run in parallel (default 5 workers). Each worker uses its own Trivy cache dir (`<BASELINE_OUT>/trivy-cache-baseline/w0` … `w4`) to avoid "cache may be in use by another process" errors. Each scan is timed; the report includes a **Duration (s)** column so you can see how long each image took. Findings are enriched with **Exploitable** (CISA KEV), **OSV.dev back-filled CVE IDs**, **Why severity**, and **Exploit info** when you run the normal CLI scan; the baseline run aggregates counts and timing so you can spot gaps (e.g. images with many Critical/exploitable findings or slow scans). In online mode, Trivy uses `--detection-priority comprehensive` to catch Go/Java stdlib CVEs via the GitHub Advisory Database. See [Vulnerability reports](vulnerability-reports.md).
 
 ## Image lists
 

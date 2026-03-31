@@ -27,15 +27,19 @@ Image ref or tarball
 
 - Same flow for **CLI** and **server**: server runs the same scanner logic (CLI subprocess or shared packages); UI is a client of the server.
 - **Image + Dockerfile**: When `--dockerfile` is set, the engine runs Trivy image (vulnerabilities) and Trivy config (misconfigurations on the Dockerfile directory); findings are merged into one list before enricher and report.
-- **Offline**: Enricher uses only Trivy output + embedded rules; no OSV or other network calls. Trivy config uses `--skip-policy-update` when offline.
+- **Host runc advisory**: When `--check-runtime` is set, the scanner detects the host runc version (via `docker version` or `runc --version`) and emits advisory findings for known container escape CVEs. These are merged into the findings list before enrichment.
+- **OSV.dev enrichment**: In online mode, findings without a CVE ID are queried against the OSV.dev API to back-fill identifiers. Results are cached in-process.
+- **SBOM export**: When `--sbom` is set, a second Trivy pass generates a CycloneDX JSON SBOM. Image scans only.
+- **Detection priority**: In online mode, Trivy runs with `--detection-priority comprehensive` to fall back to GitHub Advisory Database for Go/Java stdlib CVEs.
+- **Offline**: Enricher uses only Trivy output + CISA KEV cache; OSV.dev queries are skipped. Trivy config uses `--skip-policy-update` when offline.
 - **Baseline (optional)**: Second scan (baseline image) → diff (findings in target but not in baseline) → report/fail on delta.
 
 ## Key interfaces
 
-- **CLI**: Flags and config file (e.g. `--image`, `--dockerfile`, `--severity`, `--offline`, `--baseline-image`, `--output-dir`, `--cache-dir`, `--format`). Env vars for registry auth (no secrets in config).
+- **CLI**: Flags and config file (e.g. `--image`, `--dockerfile`, `--severity`, `--offline`, `--baseline-image`, `--output-dir`, `--cache-dir`, `--format`, `--check-runtime`, `--sbom`). Env vars for registry auth (no secrets in config).
 - **Server API**: `POST /scan` — body: image ref and/or tarball upload, options (JSON); response: report (JSON) and/or file download. Optional `GET /health`.
 - **Finding model**: Go struct(s) for a single finding: CVE ID, package, current/fixed version, severity, title, description, remediation text, remediation links. Used by enricher and report.
-- **Report formats**: SARIF 2.1 (for Azure/GitHub Security tab), Markdown, HTML. All generated from the same enriched finding list.
+- **Report formats**: SARIF 2.1 (for Azure/GitHub Security tab), Markdown, HTML, CSV. All generated from the same enriched finding list. Optional CycloneDX SBOM via `--sbom`.
 
 ## Deployment topologies
 

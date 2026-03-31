@@ -134,6 +134,9 @@ If you ran a baseline with “pull before scan,” your machine will have downlo
 - **Why severity / Exploit info** — Short explanation of why the finding has that severity and how it can be exploited (from CISA KEV when available).
 - **Remediation** — How to fix it. For example: “Upgrade package X from version 1.0 to 1.1.”
 - **SARIF** — A standard format for security results. Azure DevOps and GitHub can show SARIF results in their “Security” tab.
+- **SBOM** — Software Bill of Materials. A list of every package in an image. Use `--sbom` to generate a CycloneDX JSON file for compliance and supply-chain tools (e.g. Dependency-Track).
+- **OSV.dev enrichment** — When online, the scanner queries [OSV.dev](https://osv.dev/) (a Google-maintained database) to fill in missing CVE IDs for findings Trivy returned without one. Covers Go, Python, npm, and other ecosystems. Skipped with `--offline`.
+- **Host runc advisory** — Use `--check-runtime` to check if the container runtime on your machine (runc) has known escape vulnerabilities. These are bugs that let an attacker break out of a container onto the host. Trivy cannot see these because runc is not inside the image.
 - **Offline mode** — Running the scanner without the internet. You use a previously downloaded database of vulnerabilities (useful in locked-down or air-gapped environments).
 - **Baseline** — Scanning many images in one run and getting a summary (findings count, duration per image) and optional dashboard. See [Baseline](baseline.md).
 
