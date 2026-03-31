@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -198,11 +199,7 @@ func main() {
 	defer f.Close()
 	fmt.Fprintf(f, "Image,Findings,Duration_sec,Status,Error\n")
 	for _, r := range results {
-		errStr := r.Error
-		if strings.Contains(errStr, ",") {
-			errStr = `"` + strings.ReplaceAll(errStr, `"`, `""`) + `"`
-		}
-		fmt.Fprintf(f, "%s,%d,%.2f,%s,%s\n", r.Image, r.Findings, r.Duration.Seconds(), r.Status, errStr)
+		fmt.Fprintf(f, "%s,%d,%.2f,%s,%s\n", csvEscape(r.Image), r.Findings, r.Duration.Seconds(), r.Status, csvEscape(r.Error))
 	}
 
 	// Write Markdown report with Duration column
@@ -321,12 +318,27 @@ type result struct {
 	Error    string
 }
 
+// validImageRef allows the characters used in Docker image references:
+// registry hostnames, ports, names, tags, and SHA digests.
+var imageRefRE = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9._\-/:@+]*[a-zA-Z0-9])?$`)
+
 // dockerPull runs "docker pull <image>" so the image is local before Trivy scans; respects rate limit when used with delay between pulls.
 func dockerPull(ctx context.Context, image string) error {
+	if !imageRefRE.MatchString(image) {
+		return fmt.Errorf("invalid image reference %q", image)
+	}
 	cmd := exec.CommandContext(ctx, "docker", "pull", image)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// csvEscape quotes a CSV field if it contains commas, quotes, or newlines.
+func csvEscape(s string) string {
+	if strings.ContainsAny(s, ",\"\n\r") {
+		return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
+	}
+	return s
 }
 
 func loadImages(path string) ([]string, error) {
