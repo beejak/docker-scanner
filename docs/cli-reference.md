@@ -36,11 +36,17 @@ Use **either** `--image` **or** `--fs`/`--lxc`, not both. `--dockerfile` is only
 | `--format` | Comma-separated: sarif, markdown, html, csv | sarif,markdown |
 | `--fail-on-severity` | Exit with code 1 if any finding has this severity (e.g. `CRITICAL,HIGH`). Empty = do not fail. Use in CI to gate the build. | (none) |
 | `--fail-on-count` | Exit with code 1 if count for severity ≥ N. One rule only, format `SEVERITY:N` (e.g. `HIGH:5`). | (none) |
+| `--check-runtime` | Check host runc version for known container escape CVEs (CVE-2025-31133, CVE-2025-52565, CVE-2025-52881, CVE-2024-21626). Requires `docker` or `runc` in PATH. Findings appear in the report alongside image vulnerabilities. | false |
+| `--sbom` | Generate a CycloneDX SBOM alongside the vulnerability report (image scans only). Writes `<baseName>.cdx.json` to the output directory. | false |
 | `--config` | Path to config file. If omitted, scanner looks for `scanner.yaml` or `.scanner.yaml` in the current directory. | (none) |
 
 **Fail-on policy:** Use `--fail-on-severity CRITICAL,HIGH` to fail the pipeline when any Critical or High finding exists. Use `--fail-on-count HIGH:5` to fail when there are 5 or more High findings. Exit code 1 prints a short reason and points to the report. Omit both flags to never fail (report only).
 
-**Report content:** Markdown, HTML, and CSV include **Exploitable** (yes/no/unknown from CISA KEV), **Why severity**, and **Exploit info**. See [Vulnerability reports](vulnerability-reports.md).
+**Report content:** Markdown, HTML, and CSV include **Exploitable** (yes/no/unknown from CISA KEV), **Why severity**, and **Exploit info**. OSV.dev enrichment back-fills CVE IDs for findings Trivy returned without one. Host runc advisory findings (from `--check-runtime`) appear as normal rows with `Package=runc` and `Path=host-runtime`. See [Vulnerability reports](vulnerability-reports.md).
+
+**Detection priority:** In online mode, Trivy uses `--detection-priority comprehensive` to fall back to GitHub Advisory Database (GHSA) when NVD data is incomplete. This catches Go stdlib and Java stdlib CVEs that the default Trivy mode misses.
+
+**SBOM:** Use `--sbom` to generate a CycloneDX JSON file (`<baseName>.cdx.json`) alongside the vulnerability report. Consumable by Dependency-Track, GitHub Dependency Graph, and compliance tooling. Only supported for image scans (not rootfs/LXC).
 
 **Progress display:** The CLI prints a single progress line to **stderr** (`Scanning <image>...` then `enriching...`); the baseline prints `Progress: N/total scanned` to stderr every second; the workflow test script shows `[ N/Total ] <image> done (findings)`. This is display-only and does not change how or when Trivy runs.
 

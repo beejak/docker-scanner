@@ -7,6 +7,64 @@ import (
 	"github.com/docker-scanner/scanner/pkg/scanner"
 )
 
+func TestEnrich_offlineSkipsOSV(t *testing.T) {
+	// In offline mode, findings with no CVE ID should NOT be queried against OSV.
+	findings := []scanner.Finding{
+		{Package: "curl", CurrentVersion: "7.88.1", Severity: "HIGH", FilePath: "alpine 3.19"},
+	}
+	got := Enrich(findings, true) // offline = true
+	if got[0].CVEID != "" {
+		t.Errorf("offline mode should not back-fill CVEID, got %q", got[0].CVEID)
+	}
+}
+
+func TestEnrich_runcFindingsPreserved(t *testing.T) {
+	// runc advisory findings come with CVEID pre-filled. Enrichment should
+	// add remediation text, links, and KEV check without clobbering existing fields.
+	findings := []scanner.Finding{
+		{
+			CVEID:          "CVE-2025-31133",
+			Package:        "runc",
+			CurrentVersion: "1.1.11",
+			FixedVersion:   "1.2.8",
+			Severity:       "CRITICAL",
+			Title:          "runc maskedPaths bypass",
+			FilePath:       "host-runtime",
+			RemediationLinks: []string{
+				"https://nvd.nist.gov/vuln/detail/CVE-2025-31133",
+				"https://github.com/opencontainers/runc/releases",
+			},
+		},
+	}
+	got := Enrich(findings, true) // offline so we don't hit network
+	if got[0].CVEID != "CVE-2025-31133" {
+		t.Errorf("CVEID clobbered: got %q", got[0].CVEID)
+	}
+	if got[0].RemediationText == "" {
+		t.Error("expected remediation text for runc finding")
+	}
+	if got[0].Severity != "CRITICAL" {
+		t.Errorf("Severity changed unexpectedly: got %q", got[0].Severity)
+	}
+	if got[0].WhySeverity == "" {
+		t.Error("expected WhySeverity to be set")
+	}
+}
+
+func TestEnrich_whySeverity(t *testing.T) {
+	for _, sev := range []string{"CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"} {
+		text := whySeverityText(sev)
+		if text == "" {
+			t.Errorf("whySeverityText(%q) returned empty", sev)
+		}
+	}
+	// Unknown values get a default.
+	text := whySeverityText("WEIRD")
+	if text == "" {
+		t.Error("whySeverityText for unknown severity returned empty")
+	}
+}
+
 func TestEnrich(t *testing.T) {
 	tests := []struct {
 		name     string

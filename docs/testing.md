@@ -4,7 +4,7 @@
 
 | Type | Status | What it does | Where |
 |------|--------|--------------|--------|
-| **Unit** | ✅ In place | Tests scanner (Trivy JSON → findings), remediate (enrichment), report (SARIF/MD/HTML), policy (fail-on-severity, fail-on-count) with mocks/fixtures. No Trivy or Docker. | `pkg/scanner`, `pkg/remediate`, `pkg/report`, `pkg/policy` |
+| **Unit** | ✅ In place | Tests scanner (Trivy JSON → findings), remediate (enrichment + OSV back-fill), report (SARIF/MD/HTML/CSV), policy (fail-on-severity, fail-on-count), OSV (ecosystem mapping, API query, caching, error handling), runc (semver comparison, advisory table, edge cases). No Trivy or Docker. | `pkg/scanner`, `pkg/remediate`, `pkg/report`, `pkg/policy`, `pkg/osv`, `pkg/runc` |
 | **Integration** | ✅ In place | Full pipeline (scan → enrich → report) against a real image (`alpine:3.10`) using Trivy. Gated by `integration` build tag. | `tests/integration/` |
 | **Integration (config)** | ✅ In place | Same as above with options loaded from a config file: write `scanner.yaml`, load via `pkg/config`, run scan → enrich → report; asserts reports are written. Emulates workflow with config. Run: `go test -tags=integration ./tests/integration/... -run TestScanWithConfig -v` | `tests/integration/scan_with_config_test.go` |
 | **Baseline (manual)** | ✅ In place | Scan many images (100+ or a list), get summary CSV/MD and dashboard. Run manually; not automated. | `go run ./cmd/baseline`; see [Baseline](baseline.md) |
@@ -20,7 +20,7 @@ Use **unit** and **integration** for day-to-day development. Use the [sanity che
 
 ## Unit tests
 
-Unit tests cover the scanner (Trivy JSON → findings), remediate (enrichment), report (SARIF/Markdown/HTML), and policy (fail-on-severity, fail-on-count). No Trivy or Docker required.
+Unit tests cover the scanner (Trivy JSON → findings), remediate (enrichment + OSV back-fill + runc finding preservation), report (SARIF/Markdown/HTML/CSV), policy (fail-on-severity, fail-on-count), OSV (ecosystem mapping, HTTP API query with mock server, caching, error handling, multiple vulns), and runc (semver comparison, advisory table integrity, boundary/edge cases, version parsing). No Trivy or Docker required.
 
 ```bash
 go test ./pkg/... -v
@@ -33,6 +33,8 @@ go test ./pkg/scanner/... -v
 go test ./pkg/remediate/... -v
 go test ./pkg/report/... -v
 go test ./pkg/policy/... -v
+go test ./pkg/osv/... -v
+go test ./pkg/runc/... -v
 ```
 
 ## Integration tests

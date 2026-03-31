@@ -44,6 +44,10 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 - **CI/CD**: Azure DevOps, GitHub Actions, GitLab CI, Jenkins; same CLI, same reports.
 - **Config file**: `scanner.yaml` or `.scanner.yaml` in the current directory (or `--config <path>`) for default severity, format, output-dir, and fail-on policy; CLI flags override. See [CLI reference](docs/cli-reference.md#config-file).
 - **Offline**: `--offline` with pre-populated cache; no network for DB or enrichment.
+- **OSV.dev enrichment**: Back-fills CVE/GHSA IDs for findings Trivy returns without one. Covers Go stdlib, npm, PyPI, and other ecosystems. Skipped with `--offline`.
+- **Host runc advisory**: `--check-runtime` detects host runc version and flags known container escape CVEs (CVE-2025-31133, CVE-2025-52565, CVE-2025-52881, CVE-2024-21626) that Trivy cannot see.
+- **SBOM**: `--sbom` generates CycloneDX JSON for compliance and supply-chain tooling (image scans only).
+- **Detection priority**: Online mode uses Trivy's `--detection-priority comprehensive` to fall back to GitHub Advisory Database for Go/Java stdlib CVEs.
 - **Baseline (optional)**: Compare to a reference image (e.g. Docker Hardened Images); report/fail on delta only.
 - **Web**: Open `web/index.html` for drag-and-drop: choose Image, Rootfs path, or LXC name; paste or drop a ref and get CLI + Docker commands with Copy button. Report formats: SARIF, Markdown, HTML, CSV; PDF via browser Print to PDF.
 - **Trivy DB**: Run `./scripts/update-trivy-db.sh` (Linux/macOS) or `.\scripts\update-trivy-db.ps1` (Windows) about once a day for fresh vulnerability data; see [Help](docs/HELP.md#updating-the-trivy-database-once-a-day) for scheduling (cron, Task Scheduler).
@@ -57,8 +61,11 @@ If Go and Trivy are already in PATH, you can skip the install script and run `go
 - `ide/jetbrains` — JetBrains plugin (IntelliJ, GoLand; Tools → Scan image with Docker Scanner).
 - `pkg/config` — Load `scanner.yaml` / `.scanner.yaml` for default scan options.
 - `pkg/scanner` — Invoke Trivy, parse output into internal finding model.
-- `pkg/remediate` — Enrich findings with fix text (Trivy + OSV or rules).
-- `pkg/report` — SARIF + Markdown/HTML generation.
+- `pkg/remediate` — Enrich findings with fix text, CISA KEV, OSV.dev.
+- `pkg/osv` — OSV.dev API client for CVE back-fill.
+- `pkg/kev` — CISA Known Exploited Vulnerabilities catalog client.
+- `pkg/runc` — Host runc version detection and container escape advisory.
+- `pkg/report` — SARIF + Markdown/HTML/CSV generation.
 - `ci/` — Pipeline templates (Azure, GitHub, GitLab, Jenkins).
 - `docs/` — System design, getting started, CLI reference, integration guides.
 - `web/` — Web UI (drop zone, options, report view).

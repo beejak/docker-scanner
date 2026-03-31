@@ -14,7 +14,7 @@ From repo root:
 | 2. Vet | `go vet ./cmd/... ./pkg/...` | No suspicious code (e.g. unreachable code, wrong printf args) |
 | 3. Build CLI | `go build -o scanner ./cmd/cli` | CLI compiles (Windows: `scanner.exe`) |
 | 4. Build baseline | `go build -o baseline ./cmd/baseline` | Baseline compiles |
-| 5. Unit tests | `go test ./pkg/... -v -count=1` | Scanner, remediate, report, policy logic |
+| 5. Unit tests | `go test ./pkg/... -v -count=1` | Scanner, remediate, report, policy, OSV, runc logic |
 
 All of the above require only **Go**; no Trivy or Docker.
 

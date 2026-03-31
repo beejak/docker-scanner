@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const osvQueryURL = "https://api.osv.dev/v1/query"
+var osvURL = "https://api.osv.dev/v1/query"
 
 // ecosystemRule maps a lowercase substring to an OSV ecosystem name.
 // Evaluated in order; first match wins. More specific prefixes must come before
@@ -129,7 +129,7 @@ func Query(pkg, version, ecosystem string) ([]Result, error) {
 		return nil, err
 	}
 
-	resp, err := hclient.Post(osvQueryURL, "application/json", bytes.NewReader(body))
+	resp, err := hclient.Post(osvURL, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

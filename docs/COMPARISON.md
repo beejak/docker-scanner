@@ -34,10 +34,10 @@ Unbiased comparison of this project against free and paid container image scanne
 | **Ignore / suppression** | Planned | Yes (VEX, Rego) | Yes (`.grype.yaml`) | Yes | Yes (policy) | Yes |
 | **Offline mode** | Yes (`--offline`) | Yes | Yes | Limited | Limited | Yes |
 | **Baseline / image comparison** | Planned | No (manual diff) | No | Custom base image (Enterprise) | Yes (image comparison) | Yes |
-| **SBOM** | No | Yes | Yes (Syft) | Yes | Yes | Yes |
+| **SBOM** | Yes (CycloneDX via `--sbom`) | Yes | Yes (Syft) | Yes | Yes | Yes |
 | **Web UI** | Planned | No (CLI only) | No | Yes (dashboard) | Yes (Docker Hub) | Yes |
 | **Base image recommendation** | In remediation text | No dedicated | No | Yes (incl. custom) | Yes (`recommendations`) | Yes |
-| **Risk scoring beyond severity** | No | CVSS | EPSS + KEV + composite | Yes | Health score (A–F) | Yes (reachability, etc.) |
+| **Risk scoring beyond severity** | Yes (CISA KEV + OSV.dev + runc advisories) | CVSS | EPSS + KEV + composite | Yes | Health score (A–F) | Yes (reachability, etc.) |
 | **Multi-scanner (IaC, secrets, licenses)** | No | Yes | Vuln only | Container + deps | Vuln + policy | Yes |
 
 ---
@@ -58,8 +58,8 @@ Unbiased comparison of this project against free and paid container image scanne
 1. **No fail-on policy yet** — Trivy has `--exit-code 1 --severity CRITICAL`; we don’t. This is the top “must have” for pipeline gates.
 2. **No Dockerfile scan yet** — Trivy config, Snyk, Docker Scout scan Dockerfiles; we only scan the image. Implementing `--dockerfile` closes a clear gap.
 3. **No config / ignore file** — Trivy and Grype support config and ignore rules; we don’t yet. Teams need repeatable policy (config) and suppressions (ignore file with expiry).
-4. **No SBOM** — We don’t emit SBOM (CycloneDX/SPDX). Trivy, Grype/Syft, Snyk, Docker Scout do. SBOM is increasingly required for compliance and supply-chain tooling.
-5. **No risk scoring beyond severity** — Grype has EPSS/KEV; Docker Scout has health scores; Snyk has prioritization. We only have severity; adding a simple risk score or “exploited” flag would help prioritization.
+4. ~~**No SBOM**~~ — **Done.** `--sbom` generates CycloneDX JSON for compliance and supply-chain tooling.
+5. ~~**No risk scoring beyond severity**~~ — **Done.** CISA KEV (exploited = yes), OSV.dev enrichment (back-fills CVE IDs Trivy misses), and runc host advisory (`--check-runtime`) for container escape CVEs.
 6. **Single engine** — We wrap Trivy only. Grype + Syft, or Trivy + Grype in one product, could improve coverage; that’s a larger design choice.
 7. **No commercial support** — Unlike Snyk, Docker Scout, Aqua, Anchore we’re not a product with SLAs/support; we’re an open project. That’s a positioning choice, not a bug.
 
@@ -101,8 +101,8 @@ Unbiased comparison of this project against free and paid container image scanne
 | **CI integration** | Strong: same CLI/image for Azure, GitHub, GitLab, Jenkins. |
 | **Offline** | Strong: first-class `--offline` and cache. |
 | **Policy & fail-on** | Weak: no fail-on or config/ignore yet — implement soon. |
-| **Dockerfile & SBOM** | Gap: add Dockerfile scan and optional SBOM. |
+| **Dockerfile & SBOM** | Strong: Dockerfile scan (`--dockerfile`) and CycloneDX SBOM (`--sbom`). |
 | **Baseline & UI** | Planned: differentiator if we ship; aligns with commercial tools. |
-| **Risk scoring** | Gap: severity only; EPSS/KEV would help. |
+| **Risk scoring** | Strong: CISA KEV (exploitable), OSV.dev enrichment, runc host advisory. |
 
 **Bottom line:** We’re well placed as a “Trivy + remediation + multi-format + multi-CI” orchestrator with a path to baseline and UI. To be competitive with Trivy/Grype in pipelines, add **fail-on**, **config**, and **ignore file** next; then **Dockerfile scan** and **baseline**. SBOM and risk scoring round out the picture for compliance and prioritization.
