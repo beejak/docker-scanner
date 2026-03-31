@@ -36,6 +36,27 @@ scanner scan --image myapp:latest --output-dir ./reports --format sarif,markdown
 
 ## ⚡ Quick Start
 
+### Option D — Web UI (browser, no CLI needed)
+
+```bash
+# From repo root (Go + Trivy in PATH):
+go run ./cmd/server
+# → Open http://localhost:8080
+```
+
+Paste or drop an image reference (`alpine:latest`, `nginx:1.24`, `ghcr.io/org/app:v2`). The server streams live progress via SSE, enriches findings with CISA KEV and OSV.dev, and renders an interactive findings table in your browser. Export results as CSV, JSON, or Markdown with one click.
+
+```bash
+# Custom port:
+PORT=9090 make serve
+# or
+go run ./cmd/server -port 9090
+```
+
+The server requires Docker and Trivy in PATH (same as the CLI). It accepts one scan at a time to protect memory.
+
+---
+
 ### Option A — Docker (no Go or Trivy install needed)
 
 ```bash
@@ -572,7 +593,7 @@ docker-scanner/
 ├── tests/
 │   ├── integration/    # Integration tests (require Trivy + Docker)
 │   └── baseline/       # Image lists for baseline runs
-├── web/                # Drag-and-drop web UI (single HTML file, no server)
+├── web/                # Web UI (index.html served by cmd/server; interactive scan + live results)
 ├── scripts/            # install-deps, update-trivy-db, run-scan, cleanup
 ├── scanner.yaml.example
 └── Dockerfile

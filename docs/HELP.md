@@ -86,9 +86,83 @@ Trivy uses a **vulnerability database** that is updated regularly. For fresher r
 
 ---
 
-## Drag-and-drop: try the web UI
+## Web UI — scan from the browser
 
-You can **drag and drop** an image reference or a rootfs path (or paste it) and get the exact command to run, without typing. Open **`web/index.html`** in your browser (from the project folder). Choose **Image** (Docker/Podman), **Rootfs path**, or **LXC name**, then drop or paste (e.g. `alpine:3.10` or `/var/lib/lxc/mycontainer/rootfs`). The page shows the **CLI command** and the **Docker command**; use the **Copy** button to paste into your terminal. No server required—it’s a single HTML file.
+The scanner ships a real web interface so you can scan images without touching the command line.
+
+**Start the server:**
+```bash
+go run ./cmd/server       # listens on http://localhost:8080
+# or
+make serve                # same thing via the Makefile
+PORT=9090 make serve      # custom port
+```
+
+**Then open `http://localhost:8080` in your browser.**
+
+Paste or drop an image reference (`alpine:latest`, `nginx:1.24`, `ghcr.io/org/app:v2`) into the input box and press **Scan**. The server runs the full scan pipeline in the background and streams progress to your browser in real time. When the scan finishes you see:
+
+- **Summary cards** — Total, Critical, High, Medium, Low, and Exploitable counts
+- **Findings table** — CVE ID (linked to NVD), package, installed version, fixed version, severity badge, exploitable flag, remediation text
+- **Severity filter buttons** — narrow to Critical, High, Medium, or Low with one click
+- **Export buttons** — download results as CSV, JSON, or Markdown
+
+**Options (shown in the UI):**
+| Option | What it does |
+|--------|-------------|
+| Mode | Image (Docker/Podman) or Filesystem path |
+| Severity filter | Limit results to Critical &amp; High only, Critical only, or all |
+| Check host runc | Also test whether your container runtime has known escape CVEs |
+| Offline | Use cached Trivy DB; skip OSV.dev network calls |
+
+**What’s happening in the background:**
+
+1. Your browser sends a GET request to `/api/scan?image=<ref>&severity=...` and opens an **EventSource** (Server-Sent Events) connection.
+2. The server spawns a Trivy scan process against the image reference you provided — exactly what `scanner scan --image <ref>` does from the CLI.
+3. Status messages stream back to your browser as JSON events: `{"type":"status","message":"Running Trivy..."}`.
+4. After Trivy returns raw findings (JSON), the enricher adds remediation text, CISA KEV exploit status, OSV.dev CVE back-fill, and "Why severity" text.
+5. The server sends a final `{"type":"complete","findings":[...],"summary":{...}}` event.
+6. Your browser renders the summary cards and findings table — no page reload, no polling.
+
+Only one scan runs at a time (the server uses an atomic semaphore). If you hit Scan while one is already running, you’ll see a "scan in progress" message.
+
+**Requires:** Go + Trivy in PATH (same as the CLI). Docker must be running so Trivy can pull the image if it isn’t already cached locally.
+
+---
+
+## Reading a scan report as an executive
+
+You don't need to understand every line of a vulnerability report. Here is what to look at first, in plain language.
+
+### The one number that matters most: Exploitable Critical findings
+
+Open `report.html` (or the findings table in the Web UI). Look at the **Exploitable** column. Findings marked **⚡ YES** are in the CISA Known Exploited Vulnerabilities catalog — they are not theoretical; attackers are actively using them in the wild today. **These are the ones to fix first, regardless of severity label.**
+
+Then look at the **Critical** count. Even if none are marked exploitable yet, Critical means a remote code execution or privilege escalation is possible with no authentication. These need a fix plan before the image ships to production.
+
+### The five columns to read (in the Web UI or HTML report)
+
+| Column | What it means in business terms |
+|--------|--------------------------------|
+| **CVE / ID** | The official identifier for the vulnerability. Click it to open the NVD entry with full technical detail. |
+| **Package** | The software component inside the image that has the flaw. If it says `runc`, the problem is the container runtime on the host machine, not the image itself. |
+| **Fixed In** | The version you need to upgrade to in order to fix this. If blank, no fix exists yet — consider replacing the package or the base image. |
+| **Severity** | How bad it is: **Critical** (drop everything), **High** (fix this sprint), **Medium** (fix this quarter), **Low** (track it). |
+| **Exploitable** | ⚡ YES = confirmed exploited in the real world. No = not yet publicly exploited. — = unknown. |
+
+### What to do with the findings
+
+1. **Exploitable = YES, any severity** → patch immediately or pull the image from service.
+2. **Critical, not yet exploitable** → fix before the next production deployment.
+3. **High** → fix within the current sprint; include in the sprint scope if not already.
+4. **Medium / Low** → schedule. Review quarterly; accept with a written justification if unfixable.
+5. **Blank "Fixed In"** → no upstream fix yet. Options: replace the package, pin a patched base image, or apply a compensating control and document the acceptance.
+
+### How to share this with the team
+
+- The **CSV export** (Web UI export button or `--format csv`) opens in Excel/Sheets. Sort by Severity descending, filter Exploitable = YES for an action list.
+- The **Markdown report** (`report.md`) can be pasted into Confluence, Notion, or a GitHub issue.
+- The **SARIF report** (`report.sarif`) uploads to GitHub Security tab or Azure DevOps and shows findings inline with the code.
 
 ---
 
@@ -155,7 +229,8 @@ Go to [Troubleshooting](troubleshooting.md). There we list common errors, what t
 | Install dependencies (one script, runs in background) | [What do I need installed?](#what-do-i-need-installed) above; [Getting started](getting-started.md) |
 | Add Go/Trivy to PATH | [Adding tools to your PATH](#adding-tools-to-your-path) above |
 | Update Trivy DB (e.g. once a day) | [Updating the Trivy database](#updating-the-trivy-database-once-a-day) above |
-| Try drag-and-drop (paste image ref, get command) | [Drag-and-drop: try the web UI](#drag-and-drop-try-the-web-ui) above; open `web/index.html` |
+| Scan from the browser (no CLI) | [Web UI — scan from the browser](#web-ui--scan-from-the-browser) above; run `go run ./cmd/server` |
+| Read a report as an executive | [Reading a scan report as an executive](#reading-a-scan-report-as-an-executive) above |
 | Run my first scan | [Getting started](getting-started.md) |
 | Understand every command and option | [CLI reference](cli-reference.md) |
 | Set default options in a file (severity, format, output dir) | Put `scanner.yaml` or `.scanner.yaml` in your project; see [CLI reference — Config file](cli-reference.md#config-file) |

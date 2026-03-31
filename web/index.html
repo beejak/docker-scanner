@@ -5,117 +5,807 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Docker Container Scanner</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
-    h1 { font-size: 1.5rem; }
-    ul { padding-left: 1.25rem; }
-    a { color: #0066cc; }
-    code { background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
-    .box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0D1B2A;
+      --navy2:   #1A2E44;
+      --cyan:    #00BFFF;
+      --cyan2:   #0097CC;
+      --bg:      #EEF2F7;
+      --surface: #FFFFFF;
+      --border:  #D1D9E6;
+      --text:    #1A2038;
+      --muted:   #6B7A99;
+      --red:     #E53935;
+      --orange:  #FB8C00;
+      --yellow:  #F9A825;
+      --green:   #43A047;
+      --grey:    #757575;
+      --radius:  10px;
+      --shadow:  0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      height: 64px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+    .logo-svg { flex-shrink: 0; }
+    .logo-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .logo-text span { color: var(--cyan); }
+    header nav {
+      margin-left: auto;
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    header nav a {
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+    header nav a:hover { color: #fff; }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+    .hero h1 span { color: var(--cyan2); }
+    .hero p {
+      margin-top: 0.75rem;
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Scan card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .scan-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    /* Drop zone doubles as the text input container */
+    .drop-zone {
+      flex: 1;
+      position: relative;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .drop-zone.drag-over {
+      border-color: var(--cyan);
+      background: rgba(0,191,255,0.05);
+    }
+    .drop-zone input[type="text"] {
+      width: 100%;
+      height: 100%;
+      min-height: 52px;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      font-size: 1rem;
+      color: var(--text);
+      outline: none;
+      font-family: "Menlo", "Consolas", monospace;
+    }
+    .drop-zone input[type="text"]::placeholder { color: var(--muted); font-family: inherit; }
+    .drop-hint {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.75rem;
+      color: var(--muted);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .btn-scan {
+      background: var(--cyan2);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-scan:hover:not(:disabled) { background: var(--cyan); }
+    .btn-scan:active:not(:disabled) { transform: scale(0.97); }
+    .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Options row */
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+    .opt-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+    .opt-group label { cursor: pointer; }
+    .opt-group input[type="checkbox"] { accent-color: var(--cyan2); cursor: pointer; }
+    .opt-group select {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: var(--text);
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    /* ── Progress ── */
+    #progress-section {
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--cyan2);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .log-box {
+      margin-top: 0.75rem;
+      background: var(--navy);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.7);
+      max-height: 140px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-box .log-line::before { content: "› "; color: var(--cyan); }
+
+    /* ── Summary cards ── */
+    #summary-section {
+      margin-top: 1.5rem;
+      display: none;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-card .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .stat-card.critical .stat-num { color: var(--red); }
+    .stat-card.high     .stat-num { color: var(--orange); }
+    .stat-card.medium   .stat-num { color: var(--yellow); }
+    .stat-card.low      .stat-num { color: var(--green); }
+    .stat-card.exploitable .stat-num { color: var(--red); }
+
+    /* ── Toolbar ── */
+    .results-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .filter-btn {
+      padding: 0.3rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+    .filter-btn:hover { border-color: var(--cyan2); color: var(--cyan2); }
+    .filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .filter-btn.crit.active  { background: var(--red);    border-color: var(--red); }
+    .filter-btn.high.active  { background: var(--orange);  border-color: var(--orange); }
+    .filter-btn.med.active   { background: var(--yellow);  border-color: var(--yellow); color: var(--text); }
+    .filter-btn.low.active   { background: var(--green);   border-color: var(--green); }
+
+    .export-btns { margin-left: auto; display: flex; gap: 0.5rem; }
+    .btn-export {
+      padding: 0.3rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .btn-export:hover { border-color: var(--cyan2); color: var(--cyan2); }
+
+    /* ── Findings table ── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    thead th {
+      background: var(--navy);
+      color: rgba(255,255,255,0.75);
+      padding: 0.65rem 0.9rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,191,255,0.04); }
+    td { padding: 0.6rem 0.9rem; vertical-align: top; }
+    td.cve-cell { font-family: monospace; font-size: 0.82rem; white-space: nowrap; }
+    td.cve-cell a { color: var(--cyan2); text-decoration: none; }
+    td.cve-cell a:hover { text-decoration: underline; }
+
+    .sev-badge {
+      display: inline-block;
+      padding: 0.15rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+    .sev-CRITICAL { background: var(--red); }
+    .sev-HIGH     { background: var(--orange); }
+    .sev-MEDIUM   { background: var(--yellow); color: #333; }
+    .sev-LOW      { background: var(--green); }
+    .sev-UNKNOWN  { background: var(--grey); }
+
+    .exploit-yes {
+      color: var(--red);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+    .exploit-no {
+      color: var(--green);
+      font-size: 0.8rem;
+    }
+    .exploit-unknown {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    /* ── Error banner ── */
+    .error-banner {
+      background: #FFEBEE;
+      border: 1px solid #FFCDD2;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      color: var(--red);
+      margin-top: 1rem;
+      display: none;
+      font-size: 0.9rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    footer a { color: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .scan-row { flex-direction: column; }
+      .btn-scan { min-height: 48px; }
+      .hero h1 { font-size: 1.5rem; }
+      .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    }
   </style>
 </head>
 <body>
-  <h1>Docker Container Scanner</h1>
-  <p>CI/CD-ready container scanner: Trivy-based scans, SARIF/Markdown/HTML reports, remediation guidance, and pipeline integration.</p>
 
-  <div class="box">
-    <strong>Quick start (CLI)</strong>
-    <ul>
-      <li><strong>Docker:</strong> <code>docker run --rm -v %CD%\reports:/reports scanner:latest scan --image alpine:latest --output-dir /reports</code></li>
-      <li><strong>From source:</strong> <code>go build -o scanner ./cmd/cli</code> then <code>./scanner scan --image alpine:latest --output-dir ./reports</code></li>
-      <li><strong>Windows (no PATH):</strong> <code>scripts\run-scan-local.bat</code> — reports in <code>reports\</code>. Add <code>/publish</code> to open the report in the browser after the scan.</li>
-      <li><strong>Test with many vulns:</strong> <code>scripts\run-scan-local.bat ghcr.io/chainguard-dev/maxcve/maxcve:latest</code> (1–2 min scan, tens of thousands of findings).</li>
-    </ul>
+<!-- ── Header ── -->
+<header>
+  <a class="logo" href="/">
+    <!-- Container grid SVG logo with cyan scan beam -->
+    <svg class="logo-svg" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="36" height="36" rx="7" fill="#1A2E44"/>
+      <!-- Container rows -->
+      <rect x="5"  y="6"  width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="14" y="6"  width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="23" y="6"  width="8" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="5"  y="13" width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="14" y="13" width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="23" y="13" width="8" height="5" rx="1.2" fill="#4A8FBF" opacity="0.9"/>
+      <rect x="5"  y="20" width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.7"/>
+      <rect x="14" y="20" width="7" height="5" rx="1.2" fill="#4A8FBF" opacity="0.7"/>
+      <!-- Scan beam -->
+      <rect x="3" y="27" width="30" height="3" rx="1.5" fill="#00BFFF" opacity="0.9"/>
+      <rect x="3" y="27" width="30" height="1" rx="0.5" fill="#ffffff" opacity="0.4"/>
+    </svg>
+    <span class="logo-text">Container<span>Scanner</span></span>
+  </a>
+  <nav>
+    <a href="https://github.com/beejak/docker-scanner" target="_blank" rel="noopener">GitHub</a>
+    <a href="../docs/HELP.md">Docs</a>
+    <a href="../docs/cli-reference.md">CLI</a>
+  </nav>
+</header>
+
+<!-- ── Main ── -->
+<main>
+
+  <div class="hero">
+    <h1>Scan a container image <span>instantly</span></h1>
+    <p>Paste or drop an image reference below. Trivy scans it, CISA KEV &amp; OSV enrich results, and you get a live findings table — no CLI needed.</p>
   </div>
 
-  <p><strong>Docs</strong></p>
-  <ul>
-    <li><a href="../docs/HELP.md">Help</a> — plain-language intro, PATH, Trivy DB, drag-and-drop (image or rootfs/LXC)</li>
-    <li><a href="../docs/getting-started.md">Getting started</a> — install deps, first scan</li>
-    <li><a href="../docs/baseline.md">Baseline</a> — scan many images, dashboard</li>
-    <li><a href="../docs/image-sources.md">Image sources</a> — registries and lists</li>
-    <li><a href="../docs/hardened-images-and-local-registries.md">Hardened images & local registries</a> — your own repo, microservices</li>
-    <li><a href="../docs/ci-cd-primer.md">CI/CD primer</a> — add to pipelines</li>
-    <li><a href="../docs/cli-reference.md">CLI reference</a> — commands and flags</li>
-    <li><a href="../docs/ide-and-mcp.md">IDE plugins & MCP server</a> — VS Code, JetBrains, Cursor/AI</li>
-    <li><a href="../docs/sanity.md">Sanity checklist</a> — pre-PR checks</li>
-    <li><a href="../docs/testing.md">Testing</a> — unit and integration tests</li>
-  </ul>
-
-  <p><strong>Latest HTML report:</strong> <a href="../reports/report.html">Open report.html</a> (after running a scan). Reports are in the <code>reports\</code> folder at the repo root.</p>
-  <p><strong>Publish report:</strong> Run <code>scripts\serve-report.bat</code> to serve at <code>http://localhost:8080/reports/report.html</code>.</p>
-
-  <div class="box">
-    <strong>Drag & drop – image or rootfs to scan</strong>
-    <p>Choose <strong>Image</strong> (Docker/Podman), <strong>Rootfs path</strong>, or <strong>LXC name</strong>. Drop or paste in the box; the page shows the exact command.</p>
-    <p style="margin:0.5rem 0 0.25rem 0;">
-      <label>Scan mode: </label>
-      <select id="scanMode" style="padding:0.25rem;">
-        <option value="image">Image (Docker/Podman)</option>
-        <option value="fs">Rootfs path (e.g. LXC)</option>
-        <option value="lxc">LXC container name (Linux)</option>
-      </select>
-    </p>
-    <div id="dropzone" style="border:2px dashed #0066cc; padding:1.5rem; text-align:center; margin:0.5rem 0; min-height:60px; background:#f0f8ff; cursor:pointer;">
-      Drop here or click and paste
+  <!-- Scan card -->
+  <div class="card">
+    <div class="scan-row">
+      <div class="drop-zone" id="dropZone">
+        <input type="text" id="imageInput" placeholder="alpine:latest  ·  nginx:1.24  ·  ghcr.io/org/app:v2" autocomplete="off" spellcheck="false" />
+        <span class="drop-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          drop
+        </span>
+      </div>
+      <button class="btn-scan" id="scanBtn">Scan</button>
     </div>
-    <input type="text" id="imageRef" placeholder="e.g. alpine:3.10 or /var/lib/lxc/mycontainer/rootfs" style="width:100%; padding:0.5rem; margin:0.5rem 0; box-sizing:border-box;" />
-    <p style="margin:0.5rem 0 0.25rem 0;"><strong>From source (binary):</strong></p>
-    <p id="cliCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.25rem 0; word-break:break-all;"></p>
-    <button type="button" id="copyCli" style="margin:0.25rem 0; padding:0.25rem 0.5rem; display:none;">Copy command</button>
-    <p style="margin:0.5rem 0 0.25rem 0;"><strong>Docker:</strong></p>
-    <p id="dockerCommand" style="font-family:monospace; background:#f0f0f0; padding:0.5rem; margin:0.25rem 0; word-break:break-all;"></p>
-    <button type="button" id="copyDocker" style="margin:0.25rem 0; padding:0.25rem 0.5rem; display:none;">Copy command</button>
+
+    <div class="options-row">
+      <div class="opt-group">
+        <label for="modeSelect">Mode:</label>
+        <select id="modeSelect">
+          <option value="image">Image (Docker/Podman)</option>
+          <option value="fs">Filesystem path</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <label for="severitySelect">Severity:</label>
+        <select id="severitySelect">
+          <option value="CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN">All</option>
+          <option value="CRITICAL,HIGH">Critical &amp; High only</option>
+          <option value="CRITICAL">Critical only</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <input type="checkbox" id="checkRuntime" />
+        <label for="checkRuntime">Check host runc</label>
+      </div>
+      <div class="opt-group">
+        <input type="checkbox" id="offlineMode" />
+        <label for="offlineMode">Offline</label>
+      </div>
+    </div>
   </div>
-  <script>
-    var drop = document.getElementById('dropzone');
-    var input = document.getElementById('imageRef');
-    var modeSelect = document.getElementById('scanMode');
-    var out = document.getElementById('cliCommand');
-    var dockerOut = document.getElementById('dockerCommand');
-    var copyCli = document.getElementById('copyCli');
-    var copyDocker = document.getElementById('copyDocker');
-    function updatePlaceholder() {
-      var m = modeSelect.value;
-      input.placeholder = m === 'image' ? 'e.g. alpine:3.10 or ghcr.io/org/image:tag' : m === 'lxc' ? 'e.g. mycontainer' : 'e.g. /var/lib/lxc/mycontainer/rootfs';
-    }
-    function setRef(ref) {
-      ref = (ref || '').trim();
-      input.value = ref;
-      var m = modeSelect.value;
-      var cli = '', docker = '';
-      if (ref) {
-        if (m === 'image') {
-          cli = 'scanner scan --image ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
-          docker = 'docker run --rm -v %CD%\\reports:/reports scanner:latest scan --image ' + ref + ' --output-dir /reports --format sarif,markdown,html,csv';
-        } else if (m === 'lxc') {
-          cli = 'scanner scan --lxc ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
-          docker = 'docker run --rm -v /var/lib/lxc:/var/lib/lxc:ro -v %CD%\\reports:/reports scanner:latest scan --fs /var/lib/lxc/' + ref + '/rootfs --output-dir /reports --format sarif,markdown,html,csv';
-        } else {
-          cli = 'scanner scan --fs ' + ref + ' --output-dir ./reports --format sarif,markdown,html,csv';
-          docker = 'docker run --rm -v ' + ref.replace(/\\/g, '/') + ':/fs:ro -v %CD%\\reports:/reports scanner:latest scan --fs /fs --output-dir /reports --format sarif,markdown,html,csv';
-        }
+
+  <!-- Error banner -->
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- Progress -->
+  <div id="progress-section">
+    <div class="card">
+      <div class="progress-header">
+        <div class="spinner" id="spinner"></div>
+        <span id="progressMsg">Initialising…</span>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="summary-section">
+    <div class="summary-grid">
+      <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total</div></div>
+      <div class="stat-card critical"><div class="stat-num" id="statCritical">0</div><div class="stat-label">Critical</div></div>
+      <div class="stat-card high"><div class="stat-num" id="statHigh">0</div><div class="stat-label">High</div></div>
+      <div class="stat-card medium"><div class="stat-num" id="statMedium">0</div><div class="stat-label">Medium</div></div>
+      <div class="stat-card low"><div class="stat-num" id="statLow">0</div><div class="stat-label">Low</div></div>
+      <div class="stat-card exploitable"><div class="stat-num" id="statExploitable">0</div><div class="stat-label">Exploitable</div></div>
+    </div>
+
+    <div class="results-toolbar">
+      <button class="filter-btn active" data-sev="ALL">All</button>
+      <button class="filter-btn crit"  data-sev="CRITICAL">Critical</button>
+      <button class="filter-btn high"  data-sev="HIGH">High</button>
+      <button class="filter-btn med"   data-sev="MEDIUM">Medium</button>
+      <button class="filter-btn low"   data-sev="LOW">Low</button>
+      <div class="export-btns">
+        <button class="btn-export" id="exportCSV">CSV</button>
+        <button class="btn-export" id="exportJSON">JSON</button>
+        <button class="btn-export" id="exportMD">Markdown</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>CVE / ID</th>
+            <th>Package</th>
+            <th>Installed</th>
+            <th>Fixed In</th>
+            <th>Severity</th>
+            <th>Exploitable</th>
+            <th>Remediation</th>
+          </tr>
+        </thead>
+        <tbody id="findingsBody"></tbody>
+      </table>
+    </div>
+    <div id="elapsedLine" style="margin-top:0.75rem; font-size:0.8rem; color:var(--muted); text-align:right;"></div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Docker Container Scanner &mdash; powered by <a href="https://aquasecurity.github.io/trivy/" target="_blank" rel="noopener">Trivy</a>, CISA KEV &amp; OSV.dev &nbsp;|&nbsp; <a href="https://github.com/beejak/docker-scanner" target="_blank" rel="noopener">View on GitHub</a></p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  var allFindings = [];
+  var activeFilter = 'ALL';
+  var currentES = null;
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  var imageInput     = document.getElementById('imageInput');
+  var dropZone       = document.getElementById('dropZone');
+  var scanBtn        = document.getElementById('scanBtn');
+  var modeSelect     = document.getElementById('modeSelect');
+  var severitySelect = document.getElementById('severitySelect');
+  var checkRuntime   = document.getElementById('checkRuntime');
+  var offlineMode    = document.getElementById('offlineMode');
+  var errorBanner    = document.getElementById('errorBanner');
+  var progressSec    = document.getElementById('progress-section');
+  var progressMsg    = document.getElementById('progressMsg');
+  var logBox         = document.getElementById('logBox');
+  var spinner        = document.getElementById('spinner');
+  var summarySec     = document.getElementById('summary-section');
+  var findingsBody   = document.getElementById('findingsBody');
+  var elapsedLine    = document.getElementById('elapsedLine');
+
+  // ── Drop zone ──────────────────────────────────────────────────────────────
+  dropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', function () {
+    dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    var text = e.dataTransfer.getData('text/plain');
+    if (!text && e.dataTransfer.files.length) text = e.dataTransfer.files[0].name;
+    if (text) imageInput.value = text.trim();
+  });
+
+  // ── Scan ───────────────────────────────────────────────────────────────────
+  scanBtn.addEventListener('click', startScan);
+  imageInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') startScan();
+  });
+
+  function startScan() {
+    var ref = imageInput.value.trim();
+    if (!ref) { showError('Please enter an image reference.'); return; }
+
+    // Close any previous stream
+    if (currentES) { currentES.close(); currentES = null; }
+
+    hideError();
+    clearResults();
+    showProgress('Connecting to scanner…');
+
+    var mode     = modeSelect.value;
+    var severity = severitySelect.value;
+    var runtime  = checkRuntime.checked ? 'true' : 'false';
+    var offline  = offlineMode.checked  ? 'true' : 'false';
+
+    var param = (mode === 'fs') ? 'fs' : 'image';
+    var url = '/api/scan?' + param + '=' + encodeURIComponent(ref)
+            + '&severity=' + encodeURIComponent(severity)
+            + '&checkRuntime=' + runtime
+            + '&offline=' + offline;
+
+    scanBtn.disabled = true;
+    currentES = new EventSource(url);
+
+    currentES.onmessage = function (e) {
+      var ev;
+      try { ev = JSON.parse(e.data); } catch (_) { return; }
+
+      if (ev.type === 'status') {
+        updateProgress(ev.message);
+        appendLog(ev.message);
+      } else if (ev.type === 'complete') {
+        currentES.close();
+        currentES = null;
+        spinner.style.display = 'none';
+        updateProgress('Scan complete.');
+        allFindings = ev.findings || [];
+        renderSummary(ev.summary, ev.elapsed);
+        renderFindings(activeFilter);
+        scanBtn.disabled = false;
+      } else if (ev.type === 'error') {
+        currentES.close();
+        currentES = null;
+        hideProgress();
+        showError(ev.message);
+        scanBtn.disabled = false;
       }
-      out.textContent = cli ? 'Run: ' + cli : '';
-      dockerOut.textContent = docker ? 'Run: ' + docker : '';
-      copyCli.style.display = cli ? 'inline-block' : 'none';
-      copyDocker.style.display = docker ? 'inline-block' : 'none';
-      copyCli.dataset.text = cli;
-      copyDocker.dataset.text = docker;
-    }
-    modeSelect.addEventListener('change', function() { updatePlaceholder(); setRef(input.value); });
-    updatePlaceholder();
-    drop.addEventListener('dragover', function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; drop.style.background = '#e0f0ff'; });
-    drop.addEventListener('dragleave', function() { drop.style.background = '#f0f8ff'; });
-    drop.addEventListener('drop', function(e) {
-      e.preventDefault();
-      drop.style.background = '#f0f8ff';
-      var t = e.dataTransfer.getData('text/plain') || (e.dataTransfer.files[0] && e.dataTransfer.files[0].name);
-      if (t) setRef(t);
+    };
+
+    currentES.onerror = function () {
+      if (currentES) { currentES.close(); currentES = null; }
+      hideProgress();
+      showError('Connection error — is the server running? Start it with: go run ./cmd/server');
+      scanBtn.disabled = false;
+    };
+  }
+
+  // ── Progress helpers ───────────────────────────────────────────────────────
+  function showProgress(msg) {
+    progressSec.style.display = 'block';
+    spinner.style.display = 'block';
+    progressMsg.textContent = msg;
+    logBox.innerHTML = '';
+  }
+  function hideProgress() {
+    progressSec.style.display = 'none';
+  }
+  function updateProgress(msg) {
+    progressMsg.textContent = msg;
+  }
+  function appendLog(msg) {
+    var line = document.createElement('div');
+    line.className = 'log-line';
+    line.textContent = msg;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ── Error helpers ──────────────────────────────────────────────────────────
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = 'block';
+  }
+  function hideError() {
+    errorBanner.style.display = 'none';
+    errorBanner.textContent = '';
+  }
+
+  // ── Results helpers ────────────────────────────────────────────────────────
+  function clearResults() {
+    summarySec.style.display = 'none';
+    allFindings = [];
+    findingsBody.innerHTML = '';
+    elapsedLine.textContent = '';
+  }
+
+  function renderSummary(s, elapsed) {
+    if (!s) return;
+    document.getElementById('statTotal').textContent      = s.total       || 0;
+    document.getElementById('statCritical').textContent   = s.critical    || 0;
+    document.getElementById('statHigh').textContent       = s.high        || 0;
+    document.getElementById('statMedium').textContent     = s.medium      || 0;
+    document.getElementById('statLow').textContent        = s.low         || 0;
+    document.getElementById('statExploitable').textContent = s.exploitable || 0;
+    if (elapsed) elapsedLine.textContent = 'Scan completed in ' + elapsed;
+    summarySec.style.display = 'block';
+  }
+
+  function renderFindings(filterSev) {
+    activeFilter = filterSev;
+    // Update filter button states
+    document.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.sev === filterSev);
     });
-    drop.addEventListener('click', function() { input.focus(); });
-    input.addEventListener('input', function() { setRef(input.value); });
-    copyCli.addEventListener('click', function() { if (copyCli.dataset.text) { navigator.clipboard.writeText(copyCli.dataset.text); copyCli.textContent = 'Copied!'; setTimeout(function() { copyCli.textContent = 'Copy command'; }, 1500); } });
-    copyDocker.addEventListener('click', function() { if (copyDocker.dataset.text) { navigator.clipboard.writeText(copyDocker.dataset.text); copyDocker.textContent = 'Copied!'; setTimeout(function() { copyDocker.textContent = 'Copy command'; }, 1500); } });
-  </script>
+
+    var filtered = allFindings.filter(function (f) {
+      if (filterSev === 'ALL') return true;
+      return (f.severity || '').toUpperCase() === filterSev;
+    });
+
+    if (filtered.length === 0) {
+      findingsBody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">✅</div>' +
+        (allFindings.length === 0 ? 'No findings — this image is clean at the selected severity.' : 'No findings at this severity level.') +
+        '</div></td></tr>';
+      return;
+    }
+
+    var rows = filtered.map(function (f) {
+      var cveId  = esc(f.cve_id || '—');
+      var cveCell = f.cve_id
+        ? '<a href="https://nvd.nist.gov/vuln/detail/' + esc(f.cve_id) + '" target="_blank" rel="noopener">' + cveId + '</a>'
+        : cveId;
+      var sev    = (f.severity || 'UNKNOWN').toUpperCase();
+      var expVal = (f.exploitable || '').toLowerCase();
+      var expCell = expVal === 'yes'
+        ? '<span class="exploit-yes">⚡ YES</span>'
+        : expVal === 'no'
+          ? '<span class="exploit-no">No</span>'
+          : '<span class="exploit-unknown">—</span>';
+      var remediation = f.remediation_text
+        ? esc(f.remediation_text).substring(0, 80) + (f.remediation_text.length > 80 ? '…' : '')
+        : (f.fixed_version ? 'Upgrade to ' + esc(f.fixed_version) : '—');
+      return '<tr>' +
+        '<td class="cve-cell">' + cveCell + '</td>' +
+        '<td>' + esc(f.package || '—') + '</td>' +
+        '<td>' + esc(f.current_version || '—') + '</td>' +
+        '<td>' + esc(f.fixed_version || '—') + '</td>' +
+        '<td><span class="sev-badge sev-' + sev + '">' + sev + '</span></td>' +
+        '<td>' + expCell + '</td>' +
+        '<td style="font-size:0.82rem;color:var(--muted);">' + remediation + '</td>' +
+        '</tr>';
+    });
+    findingsBody.innerHTML = rows.join('');
+  }
+
+  // ── Filter buttons ─────────────────────────────────────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      renderFindings(btn.dataset.sev);
+    });
+  });
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+  document.getElementById('exportCSV').addEventListener('click', function () {
+    if (!allFindings.length) return;
+    var header = 'CVE ID,Package,Installed,Fixed In,Severity,Exploitable,Title\n';
+    var rows = allFindings.map(function (f) {
+      return [f.cve_id, f.package, f.current_version, f.fixed_version, f.severity, f.exploitable, f.title]
+        .map(csvQ).join(',');
+    });
+    download('findings.csv', header + rows.join('\n'), 'text/csv');
+  });
+
+  document.getElementById('exportJSON').addEventListener('click', function () {
+    if (!allFindings.length) return;
+    download('findings.json', JSON.stringify(allFindings, null, 2), 'application/json');
+  });
+
+  document.getElementById('exportMD').addEventListener('click', function () {
+    if (!allFindings.length) return;
+    var lines = ['| CVE ID | Package | Installed | Fixed In | Severity | Exploitable | Title |',
+                 '|--------|---------|-----------|----------|----------|-------------|-------|'];
+    allFindings.forEach(function (f) {
+      lines.push('| ' + [f.cve_id, f.package, f.current_version, f.fixed_version, f.severity, f.exploitable, f.title]
+        .map(function (v) { return (v || '').replace(/\|/g, '\\|'); }).join(' | ') + ' |');
+    });
+    download('findings.md', lines.join('\n'), 'text/markdown');
+  });
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+  function csvQ(v) {
+    var s = String(v || '');
+    if (/[,"\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function download(name, content, mime) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+})();
+</script>
 </body>
 </html>

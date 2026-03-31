@@ -34,4 +34,8 @@ test: test-unit test-integration
 setup-and-test:
 	powershell -ExecutionPolicy Bypass -File scripts/setup-and-test.ps1
 
-.PHONY: build scan deps docker-build docker-scan test-unit test-integration test setup-and-test
+# Start the web UI server (default port 8080; override with PORT=9090)
+serve:
+	go run ./cmd/server -port $(or $(PORT),8080)
+
+.PHONY: build scan deps docker-build docker-scan test-unit test-integration test setup-and-test serve
