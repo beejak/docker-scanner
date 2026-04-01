@@ -173,51 +173,82 @@ powershell -File "C:\path\to\scripts\update-trivy-db.ps1"
 
 ## 🐳 Running with Docker
 
-### Build once, scan anything
+### What's in the image
+
+The scanner image ships three things:
+
+| Component | Binary | Purpose |
+|-----------|--------|---------|
+| CLI scanner | `scanner` | Scan images / rootfs from the command line |
+| Web UI server | `scanner-server` | Browser-based scanning at `http://localhost:8080` |
+| Trivy | `trivy` | Vulnerability engine (pinned via `TRIVY_VERSION` build-arg) |
+
+### Build once
 
 ```bash
+# Default Trivy version (0.69.1):
 docker build -t scanner:latest .
+
+# Pin a specific Trivy version:
+docker build --build-arg TRIVY_VERSION=0.70.0 -t scanner:latest .
+
+# Or via Make:
+make docker-build                          # uses default Trivy version
+make docker-build TRIVY_VERSION=0.70.0    # pinned
 ```
 
-### Scan a local image
+### Scan a local image (full flags)
 
 ```bash
-docker run --rm \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$PWD/reports:/reports" \
-  scanner:latest scan \
-    --image myapp:latest \
-    --format sarif,markdown,html \
-    --output-dir /reports
-```
-
-### Fail on Critical or High (for use in pipelines)
-
-```bash
+mkdir -p reports
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD/reports:/reports" \
   scanner:latest scan \
     --image myapp:latest \
     --format sarif,markdown,html,csv \
+    --check-runtime \
+    --sbom \
     --fail-on-severity CRITICAL,HIGH \
     --output-dir /reports
+# Reports: report.sarif, report.md, report.html, report.csv, report.cdx.json (SBOM)
 ```
 
-### Generate SBOM alongside the report
+### Run the Web UI server via Docker
 
 ```bash
-docker run --rm \
+# Foreground (Ctrl-C to stop):
+docker run --rm -it \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v "$PWD/reports:/reports" \
-  scanner:latest scan \
-    --image myapp:latest \
-    --sbom \
-    --output-dir /reports
-# Produces reports/report.cdx.json (CycloneDX)
+  -p 8080:8080 \
+  --entrypoint scanner-server \
+  scanner:latest -port 8080
+# → http://localhost:8080
+
+# Background via Make:
+make docker-serve-bg      # starts via docker compose
+make docker-serve-stop    # stops it
 ```
 
-### Scan with a persistent cache (faster repeated scans)
+### Docker Compose (recommended for persistent server)
+
+```bash
+# Start the web UI server in the background:
+docker compose up -d scanner-server
+# → http://localhost:8080
+
+# One-shot CLI scan via Compose:
+docker compose run --rm scanner scan \
+  --image myapp:latest \
+  --output-dir /reports \
+  --format sarif,markdown,html,csv \
+  --check-runtime --sbom --fail-on-severity CRITICAL,HIGH
+
+# Custom port:
+SCANNER_PORT=9090 docker compose up -d scanner-server
+```
+
+### Scan with a persistent Trivy cache (faster repeated scans)
 
 ```bash
 docker run --rm \
@@ -232,7 +263,7 @@ docker run --rm \
 ### Air-gapped / offline
 
 ```bash
-# Pre-populate cache on a connected host
+# Pre-populate cache on a connected host:
 docker run --rm \
   -v "$HOME/.cache/trivy:/root/.cache/trivy" \
   scanner:latest db update
@@ -398,7 +429,7 @@ container-scan:
       sast: reports/report.sarif
 ```
 
-> Full template: `ci/gitlab/pipeline.example.yml`
+> Full template: `ci/gitlab/job.example.yml`
 
 ### Jenkins
 

@@ -1,31 +1,89 @@
-// Jenkins pipeline example: build image, run scanner, publish SARIF and report
-// Replace IMAGE_NAME with your built image ref
+// Jenkins Pipeline — Container Security Scan
+//
+// What this does:
+//   1. Builds your application image
+//   2. Builds the scanner image (Trivy + CLI + Web UI server)
+//   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
+//   4. Archives all reports + SBOM as build artifacts
+//   5. Fails the build if any CRITICAL or HIGH findings are present
+//
+// Customise IMAGE_NAME. Adjust --fail-on-severity to your risk tolerance.
+// Requires Docker available on the Jenkins agent.
+
 pipeline {
   agent any
+
   environment {
-    IMAGE_NAME = 'app:latest'
+    IMAGE_NAME    = "app:${env.BUILD_ID}"
+    SCANNER_IMAGE = 'scanner:latest'
+    REPORTS_DIR   = "${env.WORKSPACE}/reports"
   }
+
+  triggers {
+    // Nightly re-scan at 02:00 so new CVEs in the Trivy DB are caught.
+    cron('0 2 * * *')
+  }
+
   stages {
-    stage('Build') {
+
+    stage('Build application image') {
       steps {
         sh 'docker build -t ${IMAGE_NAME} .'
       }
     }
-    stage('Scan') {
+
+    stage('Build scanner image') {
       steps {
-        sh 'mkdir -p reports'
+        // Alternatively pull a pre-published scanner image:
+        // sh 'docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest'
+        sh 'docker build -t ${SCANNER_IMAGE} .'
+      }
+    }
+
+    stage('Container security scan') {
+      steps {
+        sh 'mkdir -p ${REPORTS_DIR}'
+        // Full scan: all formats + runc advisory + SBOM + fail-on policy.
+        // --check-runtime  checks the Jenkins agent runc for container escape CVEs
+        // --sbom           writes CycloneDX SBOM to reports/report.cdx.json
+        // --fail-on-severity exits 1 on CRITICAL or HIGH → fails this stage
         sh '''
-          docker run --rm -v ${WORKSPACE}/reports:/reports \
-            scanner:latest scan --image ${IMAGE_NAME} --output-dir /reports --format sarif,markdown
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${REPORTS_DIR}:/reports \
+            ${SCANNER_IMAGE} scan \
+              --image ${IMAGE_NAME} \
+              --output-dir /reports \
+              --format sarif,markdown,html,csv \
+              --check-runtime \
+              --sbom \
+              --fail-on-severity CRITICAL,HIGH
         '''
       }
     }
+
   }
+
   post {
     always {
-      archiveArtifacts artifacts: 'reports/*', allowEmptyArchive: true
-      // Optional: Publish SARIF (e.g. Warnings NG with SARIF format)
-      // publishIssues issues: [ ... ]
+      // Archive every report format and the CycloneDX SBOM.
+      archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
+
+      // Publish Markdown report in the build description for quick review.
+      script {
+        def mdReport = "${env.REPORTS_DIR}/report.md"
+        if (fileExists(mdReport)) {
+          def summary = readFile(mdReport).take(2000)
+          currentBuild.description = "<pre>${summary}</pre>"
+        }
+      }
+
+      // Optional: publish SARIF via Warnings Next Generation plugin
+      // recordIssues(tools: [sarif(pattern: 'reports/report.sarif')])
+    }
+
+    failure {
+      echo 'Scan failed or policy violated. Check reports/ for details.'
     }
   }
 }

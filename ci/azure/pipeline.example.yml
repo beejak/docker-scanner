@@ -1,31 +1,86 @@
-# Azure DevOps pipeline example: build image, run scanner, publish SARIF
-# Replace <IMAGE_NAME> with your built image ref (e.g. $(containerRegistry)/$(imageRepository):$(tag))
-trigger: none
-pool: vmImage: ubuntu-latest
+# Azure DevOps Pipeline — Container Security Scan
+#
+# What this does:
+#   1. Builds your application image
+#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
+#   4. Publishes SARIF to the Azure DevOps Security tab
+#   5. Publishes all reports + SBOM as pipeline artifacts
+#   6. Fails the build if any CRITICAL or HIGH findings are present
+#
+# Customise imageName to match your app. Adjust --fail-on-severity to your risk tolerance.
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+
+schedules:
+  - cron: "0 2 * * *"
+    displayName: Nightly re-scan
+    branches:
+      include: [main]
+    always: true
+
+pool:
+  vmImage: ubuntu-latest
+
 variables:
-  imageName: '<IMAGE_NAME>'
+  imageName: "app:$(Build.BuildId)"
+  scannerImage: "scanner:latest"
+  reportsDir: "$(Build.ArtifactStagingDirectory)/reports"
 
 steps:
   - task: Docker@2
-    displayName: Build image
+    displayName: Build application image
     inputs:
       command: build
-      dockerfile: '**/Dockerfile'
-      tags: $(Build.BuildId)
+      dockerfile: "**/Dockerfile"
+      tags: "$(Build.BuildId)"
+      arguments: "-t $(imageName)"
 
+  - script: docker build -t $(scannerImage) .
+    displayName: Build scanner image
+    # Alternatively pull a pre-published scanner image:
+    # script: docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest
+
+  - script: mkdir -p $(reportsDir)
+    displayName: Create reports directory
+
+  # Full scan: all formats + runc advisory + SBOM + fail-on policy.
   - script: |
-      docker run --rm -v $(Build.ArtifactStagingDirectory):/reports \
-        scanner:latest scan --image $(imageName) --output-dir /reports --format sarif,markdown
-    displayName: Run container scanner
+      docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(reportsDir):/reports \
+        $(scannerImage) scan \
+          --image $(imageName) \
+          --output-dir /reports \
+          --format sarif,markdown,html,csv \
+          --check-runtime \
+          --sbom \
+          --fail-on-severity CRITICAL,HIGH
+    displayName: Run container scan
+    # continueOnError: true   # uncomment to collect reports even on policy failure
 
+  # Publish SARIF to Azure DevOps Security tab.
   - task: PublishSecurityAnalysisResults@1
-    displayName: Publish SARIF
+    displayName: Publish SARIF to Security tab
+    condition: always()
     inputs:
-      SarifFile: '$(Build.ArtifactStagingDirectory)/report.sarif'
+      SarifFile: "$(reportsDir)/report.sarif"
 
+  # Publish all reports (SARIF, Markdown, HTML, CSV, SBOM) as pipeline artifact.
   - task: PublishPipelineArtifact@1
-    displayName: Publish report
+    displayName: Publish scan reports
+    condition: always()
     inputs:
-      targetPath: '$(Build.ArtifactStagingDirectory)'
+      targetPath: "$(reportsDir)"
       artifactName: scan-reports
       publishLocation: pipeline

@@ -1,28 +1,89 @@
-# GitHub Actions example: build image, run scanner, upload SARIF
-# Replace <IMAGE_NAME> with your built image ref
-name: Scan
-on: push
+# GitHub Actions — Container Security Scan
+#
+# What this does:
+#   1. Builds your application image
+#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
+#   4. Uploads SARIF to GitHub Security tab (Code Scanning alerts)
+#   5. Publishes all reports + SBOM as a pipeline artifact
+#   6. Fails the build if any CRITICAL or HIGH findings are present
+#
+# Customise IMAGE_NAME to match your app image.
+# Adjust --fail-on-severity to your risk tolerance.
+
+name: Container Security Scan
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  schedule:
+    # Nightly re-scan so new CVEs in the DB are caught even without a code change.
+    - cron: "0 2 * * *"
+
 jobs:
   scan:
+    name: Vulnerability scan
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # Required to upload SARIF results to GitHub Code Scanning.
+      security-events: write
+
+    env:
+      IMAGE_NAME: app:${{ github.sha }}
+      SCANNER_IMAGE: scanner:latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build image
-        run: docker build -t app:latest .
+      # Build the application image you want to scan.
+      - name: Build application image
+        run: docker build -t ${{ env.IMAGE_NAME }} .
 
-      - name: Run container scanner
+      # Build the scanner image once; reuse across steps.
+      - name: Build scanner image
+        run: docker build -t ${{ env.SCANNER_IMAGE }} .
+        working-directory: ${{ github.workspace }}
+        # If the scanner image is published to a registry, pull instead of build:
+        # run: docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      # Full scan: all formats + runc advisory + SBOM + fail-on policy.
+      # --check-runtime  checks the runner's runc for container escape CVEs
+      # --sbom           writes a CycloneDX SBOM to reports/report.cdx.json
+      # --fail-on-severity  exits 1 if any CRITICAL or HIGH finding is present
+      - name: Run container scan
         run: |
-          docker run --rm -v $PWD/reports:/reports \
-            scanner:latest scan --image app:latest --output-dir /reports --format sarif,markdown
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}/reports:/reports \
+            ${{ env.SCANNER_IMAGE }} scan \
+              --image ${{ env.IMAGE_NAME }} \
+              --output-dir /reports \
+              --format sarif,markdown,html,csv \
+              --check-runtime \
+              --sbom \
+              --fail-on-severity CRITICAL,HIGH
 
-      - name: Upload SARIF
+      # Upload SARIF so findings appear in the GitHub Security → Code Scanning tab.
+      # 'if: always()' ensures upload even when the scan step exits 1 (policy fail).
+      - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
           sarif_file: reports/report.sarif
+          category: container-scan
 
-      - name: Upload report artifact
+      # Publish all reports + SBOM as a downloadable artifact.
+      - name: Upload scan reports artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: scan-reports
+          name: scan-reports-${{ github.sha }}
           path: reports/
+          retention-days: 30

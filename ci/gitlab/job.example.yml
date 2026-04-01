@@ -1,23 +1,68 @@
-# GitLab CI example: build image, run scanner, publish SARIF to Security dashboard
-# Replace <IMAGE_NAME> with your built image ref
-scan:
-  image: docker:24
+# GitLab CI — Container Security Scan
+#
+# What this does:
+#   1. Builds your application image
+#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
+#   4. Publishes SARIF to the GitLab Security dashboard (Container Scanning report)
+#   5. Stores all reports + SBOM as job artifacts (30-day retention)
+#   6. Fails the job if any CRITICAL or HIGH findings are present
+#
+# Customise IMAGE_NAME. Adjust --fail-on-severity to your risk tolerance.
+# Requires Docker-in-Docker (docker:dind service).
+
+variables:
+  IMAGE_NAME: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
+  SCANNER_IMAGE: "scanner:latest"
+  DOCKER_TLS_CERTDIR: "/certs"
+
+# ── Build application image ──────────────────────────────────────────────────
+build:
+  stage: build
+  image: docker:26
   services:
-    - docker:24-dind
-  variables:
-    IMAGE_NAME: '<IMAGE_NAME>'
-  before_script:
-    - docker build -t $IMAGE_NAME .
+    - docker:26-dind
   script:
+    - docker build -t "$IMAGE_NAME" .
+    - docker push "$IMAGE_NAME"
+  rules:
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ── Container security scan ───────────────────────────────────────────────────
+container-scan:
+  stage: test
+  image: docker:26
+  services:
+    - docker:26-dind
+  needs: [build]
+  script:
+    - docker pull "$IMAGE_NAME"
+    # Build scanner image from this repo (or pull a pre-published one).
+    - docker build -t "$SCANNER_IMAGE" .
     - mkdir -p reports
+    # Full scan: all formats + runc advisory + SBOM + fail-on policy.
     - |
-      docker run --rm -v $PWD/reports:/reports \
-        scanner:latest scan --image $IMAGE_NAME --output-dir /reports --format sarif,markdown
+      docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "$PWD/reports:/reports" \
+        "$SCANNER_IMAGE" scan \
+          --image "$IMAGE_NAME" \
+          --output-dir /reports \
+          --format sarif,markdown,html,csv \
+          --check-runtime \
+          --sbom \
+          --fail-on-severity CRITICAL,HIGH
   artifacts:
     when: always
+    expire_in: 30 days
+    # SARIF surfaces findings in the GitLab Security dashboard.
     reports:
-      sast: reports/report.sarif
+      container_scanning: reports/report.sarif
     paths:
       - reports/
   rules:
+    - if: $CI_COMMIT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  # Nightly re-scan to catch new CVEs without a code push.
+  # Add a scheduled pipeline in GitLab CI/CD → Schedules targeting main.

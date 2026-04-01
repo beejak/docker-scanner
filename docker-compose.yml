@@ -1,0 +1,77 @@
+# Docker Compose for Docker Container Scanner
+#
+# Services:
+#   scanner-server  — web UI server (persistent, http://localhost:8080)
+#   scanner         — one-shot CLI scan (run with `docker compose run scanner`)
+#
+# Quick start:
+#   docker compose up scanner-server          # start web UI on :8080
+#   docker compose run --rm scanner scan \
+#     --image alpine:latest --output-dir /reports
+#
+# Build the image first:
+#   docker compose build
+#
+# Pin Trivy version:
+#   TRIVY_VERSION=0.70.0 docker compose build
+
+services:
+
+  # ── Web UI server ────────────────────────────────────────────────────────────
+  # Starts the HTTP server at http://localhost:8080.
+  # Paste or drop an image reference in the browser and get live scan results.
+  # Requires Docker socket so scanner-server can ask Trivy to pull images.
+  scanner-server:
+    build:
+      context: .
+      args:
+        TRIVY_VERSION: ${TRIVY_VERSION:-0.69.1}
+    image: scanner:latest
+    entrypoint: ["scanner-server"]
+    command: ["-port", "8080"]
+    ports:
+      - "${SCANNER_PORT:-8080}:8080"
+    volumes:
+      # Docker socket — lets Trivy pull images the user requests from the browser.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent Trivy DB cache (avoids re-downloading on every restart).
+      - trivy-cache:/root/.cache/trivy
+    environment:
+      - TRIVY_CACHE_DIR=/root/.cache/trivy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ── One-shot CLI scanner ─────────────────────────────────────────────────────
+  # Use for scripted / CI scans.  Not started by `docker compose up`.
+  # Usage:
+  #   docker compose run --rm scanner scan \
+  #     --image myapp:latest \
+  #     --output-dir /reports \
+  #     --format sarif,markdown,html,csv \
+  #     --fail-on-severity CRITICAL,HIGH \
+  #     --check-runtime \
+  #     --sbom
+  scanner:
+    build:
+      context: .
+      args:
+        TRIVY_VERSION: ${TRIVY_VERSION:-0.69.1}
+    image: scanner:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${REPORTS_DIR:-./reports}:/reports
+      - trivy-cache:/root/.cache/trivy
+    environment:
+      - TRIVY_CACHE_DIR=/root/.cache/trivy
+    # No restart policy — one-shot by design.
+    profiles:
+      - cli
+
+volumes:
+  trivy-cache:
+    driver: local
