@@ -1,31 +1,59 @@
 {
   "name": "docker-scanner",
   "displayName": "Docker Scanner",
-  "description": "Scan container images for vulnerabilities from the editor. Uses the docker-scanner CLI or MCP server.",
-  "version": "0.1.0",
+  "description": "Scan container images for vulnerabilities from VS Code. Uses the docker-scanner CLI — Trivy + CISA KEV + OSV.dev + runc advisory + Web UI.",
+  "version": "0.2.0",
   "publisher": "docker-scanner",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other", "Testing"],
-  "activationEvents": ["onCommand:docker-scanner.scanImage", "onCommand:docker-scanner.scanImageFromDockerfile"],
+  "activationEvents": [
+    "onCommand:docker-scanner.scanImage",
+    "onCommand:docker-scanner.scanImageFromDockerfile",
+    "onCommand:docker-scanner.openWebUI",
+    "onCommand:docker-scanner.checkRuntime"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "docker-scanner.scanImage",
-        "title": "Docker Scanner: Scan image"
+        "title": "Docker Scanner: Scan image",
+        "icon": "$(shield)"
       },
       {
         "command": "docker-scanner.scanImageFromDockerfile",
         "title": "Docker Scanner: Scan image for current Dockerfile"
+      },
+      {
+        "command": "docker-scanner.openWebUI",
+        "title": "Docker Scanner: Open Web UI",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "docker-scanner.checkRuntime",
+        "title": "Docker Scanner: Check host runc for container escape CVEs"
       }
     ],
     "menus": {
       "editor/context": [
-        { "command": "docker-scanner.scanImageFromDockerfile", "when": "editorLangId == dockerfile" }
+        {
+          "command": "docker-scanner.scanImageFromDockerfile",
+          "when": "editorLangId == dockerfile",
+          "group": "security"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "docker-scanner.scanImageFromDockerfile",
+          "when": "editorLangId == dockerfile",
+          "group": "navigation"
+        }
       ],
       "commandPalette": [
         { "command": "docker-scanner.scanImage" },
-        { "command": "docker-scanner.scanImageFromDockerfile" }
+        { "command": "docker-scanner.scanImageFromDockerfile" },
+        { "command": "docker-scanner.openWebUI" },
+        { "command": "docker-scanner.checkRuntime" }
       ]
     },
     "configuration": {
@@ -34,12 +62,52 @@
         "dockerScanner.cliPath": {
           "type": "string",
           "default": "scanner",
-          "description": "Path to scanner CLI (e.g. 'scanner' or full path). Use 'go run ./cmd/cli' to run from repo."
+          "description": "Path to the scanner CLI binary. Use 'go run ./cmd/cli' to run from repo source."
+        },
+        "dockerScanner.serverPath": {
+          "type": "string",
+          "default": "scanner-server",
+          "description": "Path to the scanner-server binary (for Open Web UI command). Use 'go run ./cmd/server' to run from repo source."
         },
         "dockerScanner.reportsDir": {
           "type": "string",
           "default": "./reports",
-          "description": "Default output directory for reports."
+          "description": "Output directory for scan reports (SARIF, Markdown, HTML, CSV, SBOM)."
+        },
+        "dockerScanner.formats": {
+          "type": "string",
+          "default": "sarif,markdown,html,csv",
+          "description": "Comma-separated report formats: sarif, markdown, html, csv."
+        },
+        "dockerScanner.severity": {
+          "type": "string",
+          "default": "",
+          "description": "Comma-separated severities to include: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN. Empty = all."
+        },
+        "dockerScanner.failOnSeverity": {
+          "type": "string",
+          "default": "",
+          "description": "Show a warning if findings at these severities are found (e.g. CRITICAL,HIGH). Empty = never warn on severity."
+        },
+        "dockerScanner.checkRuntime": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also check the host runc version for known container escape CVEs (CVE-2024-21626, CVE-2025-31133, etc.)."
+        },
+        "dockerScanner.sbom": {
+          "type": "boolean",
+          "default": false,
+          "description": "Generate a CycloneDX SBOM (report.cdx.json) alongside the vulnerability report."
+        },
+        "dockerScanner.offline": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip Trivy DB update and OSV.dev enrichment. Use cached data only (air-gapped mode)."
+        },
+        "dockerScanner.webUIPort": {
+          "type": "number",
+          "default": 8080,
+          "description": "Port for the scanner Web UI server (used by the Open Web UI command)."
         }
       }
     }
