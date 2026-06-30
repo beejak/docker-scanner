@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const cisaKEVURL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+var cisaKEVURL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 
 type kevCatalog struct {
 	Vulnerabilities []struct {
