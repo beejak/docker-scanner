@@ -34,6 +34,24 @@ type kevEntry struct {
 	Ransomware       string
 }
 
+// SetURLForTest overrides the CISA KEV URL and returns the previous value.
+// For use in tests only; not safe to call during normal operation.
+func SetURLForTest(url string) (prev string) {
+	prev = cisaKEVURL
+	cisaKEVURL = url
+	return prev
+}
+
+// ResetForTest clears the cached catalog so the next Load() re-fetches.
+// For use in tests only.
+func ResetForTest() {
+	mu.Lock()
+	defer mu.Unlock()
+	knownExploited = nil
+	kevInfo = nil
+	lastFetch = time.Time{}
+}
+
 // Load fetches the CISA KEV catalog and caches it. Safe to call from multiple goroutines.
 func Load() error {
 	mu.RLock()
