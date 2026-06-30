@@ -257,12 +257,16 @@ flowchart LR
     I2[.github/workflows/ci.yml — nightly integration job]
   end
 
+  subgraph tested_no_deps2 [No external deps — handlers]
+    U10[cmd/server — httptest handlers]
+    U11[cmd/mcp-server — pure helpers]
+    U12[cmd/baseline — unit helpers]
+  end
+
   subgraph not_yet [No automated tests yet]
-    N1[cmd/server HTTP handlers]
-    N2[cmd/mcp-server tool schema]
+    N1[ide/vscode extension]
+    N2[ide/jetbrains plugin]
     N3[cmd/baseline goroutine smoke]
-    N4[ide/vscode extension]
-    N5[ide/jetbrains plugin]
   end
 ```
 

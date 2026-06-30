@@ -12,7 +12,10 @@
 | **CI pipeline** | ✅ In place | `go vet` + `go test -race ./pkg/...` + `go build ./cmd/...` on every push/PR; integration scan on push to main | `.github/workflows/ci.yml` |
 | **Baseline (manual)** | ✅ In place | 100+ images in parallel; CSV/Markdown/HTML dashboard | `go run ./cmd/baseline`; see [Baseline](baseline.md) |
 | **Sanity checklist** | ✅ In place | Pre-PR/release: vet, build, unit tests, optional integration | [Sanity checklist](sanity.md) |
-| **Baseline smoke (CI)** | 📋 Planned | Run baseline with `BASELINE_LIMIT=2` in CI to smoke-test the baseline code path | Not yet |
+| **Server HTTP handlers** | ✅ In place | `handleHealth`, `buildSummary`, SSE input validation (bad image ref, missing params, concurrency guard, both params), SSE Content-Type | `cmd/server/main_test.go` |
+| **MCP helper functions** | ✅ In place | `parseSeverities`, `formatSummary` (empty, counts, ordering, unknown severity) | `cmd/mcp-server/main_test.go` |
+| **Baseline helpers** | ✅ In place | `loadImages` (comments/blanks stripped, missing file, empty), `csvEscape` (RFC 4180), `writeFindingsMarkdown`, `writeDashboardHTML` | `cmd/baseline/main_test.go` |
+| **Baseline smoke (CI)** | 📋 Planned | Run baseline with `BASELINE_LIMIT=2` in CI to smoke-test the goroutine worker path | Not yet |
 | **Install / script sanity** | 📋 Planned | Run `install-deps` then scan to catch PATH and script issues | Not yet |
 
 ---
