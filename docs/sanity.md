@@ -1,6 +1,6 @@
 # Sanity checklist
 
-Run these checks before opening a PR or cutting a release to ensure the repo is in good shape.
+Run these checks before opening a PR or cutting a release.
 
 ---
 
@@ -11,10 +11,12 @@ From repo root:
 | Step | Command | What it checks |
 |------|---------|----------------|
 | 1. Dependencies | `go mod tidy` | No missing or unused modules |
-| 2. Vet | `go vet ./cmd/... ./pkg/...` | No suspicious code (e.g. unreachable code, wrong printf args) |
+| 2. Vet | `go vet ./cmd/... ./pkg/...` | No suspicious code (unreachable code, wrong printf args) |
 | 3. Build CLI | `go build -o scanner ./cmd/cli` | CLI compiles (Windows: `scanner.exe`) |
 | 4. Build baseline | `go build -o baseline ./cmd/baseline` | Baseline compiles |
-| 5. Unit tests | `go test ./pkg/... -v -count=1` | Scanner, remediate, report, policy, OSV, runc logic |
+| 5. Build server | `go build -o scanner-server ./cmd/server` | Server compiles |
+| 6. Unit tests + race | `go test -race -count=1 ./pkg/...` | All 8 packages: kev, scanner, osv, runc, remediate, report, policy, config |
+| 7. CLI tests | `go test -race -count=1 ./cmd/cli/...` | Exit-code contract (`--fail-on-severity`, `--fail-on-count`), report output, LXC name validation |
 
 All of the above require only **Go**; no Trivy or Docker.
 
@@ -22,24 +24,25 @@ All of the above require only **Go**; no Trivy or Docker.
 
 ## Full sanity (Trivy in PATH)
 
-If Trivy is in PATH (and optionally Docker for image pull):
-
 | Step | Command | What it checks |
 |------|---------|----------------|
-| 6. Integration test | `go test -tags=integration ./tests/integration/... -v -count=1` | Full scan → enrich → report against a real image (`alpine:3.10`) |
+| 8. Integration | `go test -tags=integration ./tests/integration/... -v -count=1` | Full scan → enrich → report against `alpine:3.10` |
 
-First run may download the Trivy DB and the image.
+First run downloads the Trivy DB and image.
+
+---
+
+## CI check
+
+After every push/PR the GitHub Actions workflow (`.github/workflows/ci.yml`) runs steps 2, 6, 7, and 3–5 automatically. Check the Actions tab before merging.
 
 ---
 
 ## Optional (manual)
 
-- **One scan:** Run `./scanner scan --image alpine:latest --output-dir ./reports` (or use the Docker image) and open `reports/report.md` to confirm output.
-- **Baseline smoke:** Run baseline with a tiny list and limit, e.g. `BASELINE_LIMIT=2 BASELINE_IMAGES=tests/baseline/images-lesser-known.txt go run ./cmd/baseline` (requires Trivy; use `BASELINE_PULL_FIRST=1` and `BASELINE_DELAY_SEC=10` if you hit rate limits).
-- **Scripts:** Run `./scripts/install-deps.sh --foreground` or `.\scripts\install-deps.ps1 -Foreground` on a clean(ish) machine to confirm install path; run `./scripts/update-trivy-db.sh` or `.\scripts\update-trivy-db.ps1` to confirm Trivy DB update.
-
----
-
-## CI
-
-A future CI workflow can run steps 1–5 on every push, and step 6 in a job that has Trivy installed. See [Test types (current and planned)](testing.md#test-types-current-and-planned) and [CI/CD primer](ci-cd-primer.md).
+- **One scan:** `./scanner scan --image alpine:latest --output-dir ./reports` then open `reports/report.md`.
+- **SARIF import:** Upload `reports/report.sarif` to a GitHub repo Security tab; verify findings appear.
+- **Baseline smoke:** `BASELINE_LIMIT=2 go run ./cmd/baseline` — completes in <60 s, writes CSV.
+- **Web UI:** `go run ./cmd/server` → `http://localhost:8080` → paste `alpine:latest` → verify SSE progress, findings table, export buttons.
+- **MCP server:** `go run ./cmd/mcp-server`; call `scan_image {"image":"alpine:latest"}`; assert `ok: true`.
+- **Scripts:** `./scripts/install-deps.sh --foreground` on a clean machine; `./scripts/update-trivy-db.sh`.
