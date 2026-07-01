@@ -100,20 +100,40 @@ See [Baseline test](baseline.md) for all options. No credentials in code — use
 
 ---
 
+## Supported platforms
+
+The scanner works with any CI that can run Docker. Full templates and step-by-step guides exist for all nine major platforms:
+
+| Platform | Template | Full guide |
+|----------|----------|------------|
+| GitHub Actions | `ci/github/workflow.example.yml` | [docs/ci/github-actions.md](ci/github-actions.md) |
+| GitLab CI | `ci/gitlab/job.example.yml` | [docs/ci/gitlab-ci.md](ci/gitlab-ci.md) |
+| Azure DevOps | `ci/azure/pipeline.example.yml` | [docs/ci/azure-devops.md](ci/azure-devops.md) |
+| Jenkins | `ci/jenkins/Jenkinsfile.example` | [docs/ci/jenkins.md](ci/jenkins.md) |
+| CircleCI | `ci/circleci/config.example.yml` | [docs/ci/circleci.md](ci/circleci.md) |
+| AWS CodeBuild | `ci/aws-codebuild/buildspec.yml` | [docs/ci/aws-codebuild.md](ci/aws-codebuild.md) |
+| Google Cloud Build | `ci/google-cloud-build/cloudbuild.yaml` | [docs/ci/google-cloud-build.md](ci/google-cloud-build.md) |
+| Bitbucket Pipelines | `ci/bitbucket/bitbucket-pipelines.yml` | [docs/ci/bitbucket-pipelines.md](ci/bitbucket-pipelines.md) |
+| Tekton | `ci/tekton/scanner-task.yaml` | [docs/ci/tekton.md](ci/tekton.md) |
+
+Each guide covers: how to pass the image ref from the build step, how to publish reports as artifacts, how to upload SARIF to the platform's security dashboard, and how to set credentials securely.
+
+---
+
 ## Example: GitHub Actions (non‑prod)
 
 1. In your repo, add or edit a workflow under `.github/workflows/` (e.g. `scan.yml`).
 2. Trigger it on push (or pull_request) to a non‑prod branch.
 3. Steps (conceptual):
    - Checkout code.
-   - Build your app image (e.g. `docker build -t myapp:latest .`).
+   - Build your app image (e.g. `docker build -t myapp:${{ github.sha }} .`).
    - (Optional) Log in to a registry using a secret (e.g. `GHCR` or Docker Hub token).
    - Build or pull the scanner image, then run:
-     - `docker run --rm -v $PWD/reports:/reports scanner:latest scan --image myapp:latest --output-dir /reports --format sarif,markdown --fail-on-severity CRITICAL,HIGH`
+     - `docker run --rm -v $PWD/reports:/reports scanner:latest scan --image myapp:${{ github.sha }} --output-dir /reports --format sarif,markdown --fail-on-severity CRITICAL,HIGH`
    - Upload the SARIF file (if you use GitHub Code Scanning): `github/codeql-action/upload-sarif`.
    - Upload the `reports/` folder as an artifact so you can download the Markdown/HTML/CSV.
 
-Templates are in `ci/github/workflow.example.yml`; adapt the image name and the `--fail-on-severity` to your policy.
+Full template and variable reference: [docs/ci/github-actions.md](ci/github-actions.md).
 
 ---
 
@@ -126,7 +146,7 @@ Templates are in `ci/github/workflow.example.yml`; adapt the image name and the 
    - Publish SARIF with `PublishSecurityAnalysisResults@1`.
    - Publish the reports folder with `PublishPipelineArtifact@1`.
 
-Templates are in `ci/azure/pipeline.example.yml`; replace the image name and options as above.
+Full template and variable reference: [docs/ci/azure-devops.md](ci/azure-devops.md).
 
 ---
 
