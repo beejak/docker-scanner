@@ -21,7 +21,7 @@ jobs:
         run: go vet ./...
 
       - name: Unit tests (with race detector)
-        run: go test -race -count=1 ./pkg/...
+        run: go test -race -count=1 ./pkg/... ./cmd/...
 
       - name: Build all commands
         run: go build ./cmd/...
@@ -29,8 +29,9 @@ jobs:
   integration:
     name: Integration Scan
     runs-on: ubuntu-latest
-    # Run on push to main and on PRs that touch scanner/enrichment code.
-    if: github.event_name == 'push' || contains(github.event.pull_request.changed_files, 'pkg/scanner') || contains(github.event.pull_request.changed_files, 'pkg/remediate')
+    # Run on push to main only; path-scoped PR triggers require tj-actions/changed-files
+    # (github.event.pull_request.changed_files is an integer count, not a path list).
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +42,7 @@ jobs:
 
       - name: Install Trivy
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.1
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/v0.69.1/contrib/install.sh | sh -s -- -b /usr/local/bin v0.69.1
 
       - name: Integration tests
         run: go test -v -timeout 5m ./tests/integration/...

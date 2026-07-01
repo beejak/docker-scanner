@@ -35,7 +35,8 @@ type kevEntry struct {
 }
 
 // SetURLForTest overrides the CISA KEV URL and returns the previous value.
-// For use in tests only; not safe to call during normal operation.
+// Exported for cross-package test injection; the ForTest suffix is the Go convention
+// for distinguishing these from production API. Not safe to call during normal operation.
 func SetURLForTest(url string) (prev string) {
 	prev = cisaKEVURL
 	cisaKEVURL = url
@@ -43,7 +44,7 @@ func SetURLForTest(url string) (prev string) {
 }
 
 // ResetForTest clears the cached catalog so the next Load() re-fetches.
-// For use in tests only.
+// Exported for cross-package test injection; see SetURLForTest.
 func ResetForTest() {
 	mu.Lock()
 	defer mu.Unlock()
