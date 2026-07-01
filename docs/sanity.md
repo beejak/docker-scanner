@@ -15,8 +15,7 @@ From repo root:
 | 3. Build CLI | `go build -o scanner ./cmd/cli` | CLI compiles (Windows: `scanner.exe`) |
 | 4. Build baseline | `go build -o baseline ./cmd/baseline` | Baseline compiles |
 | 5. Build server | `go build -o scanner-server ./cmd/server` | Server compiles |
-| 6. Unit tests + race | `go test -race -count=1 ./pkg/...` | All 8 packages: kev, scanner, osv, runc, remediate, report, policy, config |
-| 7. CLI tests | `go test -race -count=1 ./cmd/cli/...` | Exit-code contract (`--fail-on-severity`, `--fail-on-count`), report output, LXC name validation |
+| 6. All unit tests + race | `go test -race -count=1 ./pkg/... ./cmd/...` | All packages: pkg/* (8 packages) + cmd/cli, cmd/server, cmd/mcp-server, cmd/baseline |
 
 All of the above require only **Go**; no Trivy or Docker.
 
@@ -34,7 +33,7 @@ First run downloads the Trivy DB and image.
 
 ## CI check
 
-After every push/PR the GitHub Actions workflow (`.github/workflows/ci.yml`) runs steps 2, 6, 7, and 3–5 automatically. Check the Actions tab before merging.
+After every push/PR the GitHub Actions workflow (`.github/workflows/ci.yml`) runs steps 2, 6, and 3–5 automatically. Check the Actions tab before merging.
 
 ---
 

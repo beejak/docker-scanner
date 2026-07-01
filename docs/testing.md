@@ -106,8 +106,7 @@ Every push and PR runs:
 
 ```
 go vet ./...
-go test -race -count=1 ./pkg/...
-go test -race -count=1 ./cmd/cli/...
+go test -race -count=1 ./pkg/... ./cmd/...
 go build ./cmd/cli ./cmd/server ./cmd/baseline
 ```
 
@@ -125,10 +124,10 @@ Integration scan (Trivy installed) runs on push to `main`. See `.github/workflow
 
 | Kind | Command | Trivy / Docker |
 |------|---------|----------------|
-| Unit + race | `go test -race ./pkg/...` | Not required |
+| Unit + race | `go test -race ./pkg/... ./cmd/...` | Not required |
 | CLI exit-code | `go test -race ./cmd/cli/...` | Not required (fake binary) |
 | Enrichment integration | `go test -race ./pkg/remediate/...` | Not required (mock HTTP) |
-| All (no integration) | `go test -race ./pkg/... ./cmd/cli/...` | Not required |
+| All (no integration) | `go test -race ./pkg/... ./cmd/...` | Not required |
 | Full integration | `go test -tags=integration ./tests/integration/...` | Trivy in PATH |
 | Baseline (100+ images) | `go run ./cmd/baseline` | Trivy in PATH |
 | Web UI | `go run ./cmd/server` → `http://localhost:8080` | Trivy in PATH; Docker running |

@@ -254,7 +254,7 @@ flowchart LR
 
   subgraph tested_trivy [Requires Trivy]
     I1[tests/integration — real alpine:3.10 scan]
-    I2[.github/workflows/ci.yml — nightly integration job]
+    I2[.github/workflows/ci.yml — push-to-main integration job]
   end
 
   subgraph tested_no_deps2 [No external deps — handlers]

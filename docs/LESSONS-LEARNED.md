@@ -91,3 +91,12 @@ This file is updated by the **Lessons Learned Agent** after each significant tas
 - **What didn't / was hard:** `go get` for mcp-server upgraded the Go toolchain from 1.21 to 1.25 (SDK requires >= 1.25); fortunately all existing tests remained green and all four binaries still built.
 - **Score (1–5):** 5 — All `cmd/*` packages now have automated tests; full suite (pkg + cmd) passes `-race -count=1` with no external deps.
 - **Lesson / next time:** Check third-party SDK minimum Go version before adding it to a module — a major toolchain upgrade can be an unexpected side-effect. Use `go mod graph | grep sdk` before `go get` to spot version requirements early.
+
+### Code review: CI bugs caught and fixed (PR #2)
+
+- **When:** Post-implementation code review session (PR #2).
+- **What we did:** Ran a structured 8-angle code review (correctness, removed-behavior, cross-file, cleanup, efficiency, altitude, conventions) on the PR diff. Found three confirmed CI bugs: (1) `./cmd/...` missing from the `go test` step — all new cmd/* tests were excluded from CI; (2) `changed_files` is an integer in GitHub Actions, not a path list, so `contains(..., 'pkg/scanner')` was always false and the integration job never triggered on PRs; (3) Trivy install script fetched from floating `main` branch instead of pinned tag. Fixed all three in a follow-up commit, also added a clarifying comment on `SetURLForTest`/`ResetForTest` (can't use `_test.go` for cross-package injection). Greptile auto-reviewer independently flagged the same two highest-severity bugs (P1).
+- **What worked:** Parallel agent-based review (8 angles simultaneously) surfaced all real issues quickly. Greptile agreement on the top two bugs validated the findings independently.
+- **What didn't / was hard:** The `SetURLForTest`/`ResetForTest` production-exposure finding was initially marked actionable but turned out not to be — moving them to `_test.go` breaks cross-package test injection. The `ForTest` naming suffix is the correct Go idiom for this pattern; no fix needed.
+- **Score (1–5):** 5 — Three real bugs fixed before merge; no false positives that required rollback.
+- **Lesson / next time:** Always verify that new test packages are included in the CI test glob — it's the most common gap when tests are added late. Run `go test ./...` locally to confirm coverage before opening a PR.

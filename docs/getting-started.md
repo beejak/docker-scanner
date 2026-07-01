@@ -7,7 +7,7 @@ This page walks you through **installing** and **running your first scan** in pl
 ## Prerequisites
 
 - **Option A — Docker only:** You need **Docker** installed. You build the scanner as a container image and run it; no Go or Trivy on your machine.
-- **Option B — From source:** You need **Go 1.21+** and **Trivy**. Use the **one-script install** for your OS so you don’t have to install them by hand.
+- **Option B — From source:** You need **Go 1.25+** and **Trivy**. Use the **one-script install** for your OS so you don’t have to install them by hand.
 
 ---
 
