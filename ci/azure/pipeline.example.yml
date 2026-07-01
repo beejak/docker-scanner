@@ -2,7 +2,7 @@
 #
 # What this does:
 #   1. Builds your application image
-#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   2. Pulls the scanner image from GHCR (ghcr.io/beejak/docker-scanner:latest)
 #   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
 #   4. Publishes SARIF to the Azure DevOps Security tab
 #   5. Publishes all reports + SBOM as pipeline artifacts
@@ -46,10 +46,11 @@ steps:
       tags: "$(Build.BuildId)"
       arguments: "-t $(imageName)"
 
-  - script: docker build -t $(scannerImage) .
-    displayName: Build scanner image
-    # Alternatively pull a pre-published scanner image:
-    # script: docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest
+  - script: |
+      docker pull ghcr.io/beejak/docker-scanner:latest
+      docker tag ghcr.io/beejak/docker-scanner:latest $(scannerImage)
+    displayName: Pull scanner image
+    # To build from source instead: docker build -t $(scannerImage) /path/to/docker-scanner
 
   - script: mkdir -p $(reportsDir)
     displayName: Create reports directory
