@@ -471,6 +471,18 @@ pipeline {
 
 > Full template: `ci/jenkins/Jenkinsfile.example`
 
+### More platforms
+
+| Platform | Template | Guide |
+|----------|----------|-------|
+| CircleCI | `ci/circleci/config.example.yml` | [docs/ci/circleci.md](docs/ci/circleci.md) |
+| AWS CodeBuild | `ci/aws-codebuild/buildspec.yml` | [docs/ci/aws-codebuild.md](docs/ci/aws-codebuild.md) |
+| Google Cloud Build | `ci/google-cloud-build/cloudbuild.yaml` | [docs/ci/google-cloud-build.md](docs/ci/google-cloud-build.md) |
+| Bitbucket Pipelines | `ci/bitbucket/bitbucket-pipelines.yml` | [docs/ci/bitbucket-pipelines.md](docs/ci/bitbucket-pipelines.md) |
+| Tekton | `ci/tekton/scanner-task.yaml` | [docs/ci/tekton.md](docs/ci/tekton.md) |
+
+> See [docs/ci/README.md](docs/ci/README.md) for all nine supported platforms.
+
 ### CI Quick-reference
 
 | Goal | Flag |
@@ -645,7 +657,7 @@ docker-scanner/
 ├── ide/
 │   ├── vscode/         # VS Code / Cursor extension
 │   └── jetbrains/      # IntelliJ / GoLand plugin
-├── ci/                 # Pipeline templates (GitHub, Azure, GitLab, Jenkins)
+├── ci/                 # Pipeline templates (GitHub, Azure, GitLab, Jenkins, CircleCI, CodeBuild, GCB, Bitbucket, Tekton)
 ├── docs/               # Full documentation set
 ├── tests/
 │   ├── integration/    # Integration tests (require Trivy + Docker)
