@@ -1,0 +1,125 @@
+# Tekton Task — docker-scanner
+#
+# Runs the docker-scanner CLI inside a Tekton pipeline step.
+# Reports (SARIF, Markdown, HTML) are written to the "reports" workspace
+# so downstream steps or a final upload step can consume them.
+#
+# Prerequisites
+#   - Tekton Pipelines v0.50+ installed in the cluster
+#   - The scanner image pushed to a registry the cluster can pull from
+#   - A Kubernetes Secret with registry credentials (see env section below)
+#
+# Apply:
+#   kubectl apply -f ci/tekton/scanner-task.yaml
+
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: docker-scanner
+  labels:
+    app.kubernetes.io/version: "1.0"
+  annotations:
+    tekton.dev/displayName: "Docker Image Security Scanner"
+    tekton.dev/description: >
+      Scans a container image for vulnerabilities using docker-scanner.
+      Writes SARIF, Markdown, and HTML reports to the bound workspace.
+spec:
+  description: >
+    Pulls the target image reference and runs a full vulnerability scan.
+    The step exits non-zero when findings at or above fail-on-severity are found,
+    which causes the TaskRun (and any parent Pipeline) to fail.
+
+  params:
+    - name: image-ref
+      type: string
+      description: >
+        Fully-qualified image reference to scan, e.g.
+        registry.example.com/myapp:v1.2.3 or myapp@sha256:abc123...
+
+    - name: fail-on-severity
+      type: string
+      default: "CRITICAL,HIGH"
+      description: >
+        Comma-separated list of severity levels that cause a non-zero exit.
+        Valid values: CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN.
+        Set to "" to report findings without failing the step.
+
+    - name: output-formats
+      type: string
+      default: "sarif,markdown,html"
+      description: >
+        Comma-separated list of output formats to generate.
+        Valid values: sarif, markdown, html, json, table.
+
+  workspaces:
+    - name: reports
+      description: >
+        Output workspace where all scan reports are written.
+        Mount a PersistentVolumeClaim here so downstream steps and pipeline
+        tasks can read the reports, or use an emptyDir for single-task runs.
+
+  steps:
+    - name: scan
+      # TODO: replace with the fully-qualified image reference for your
+      # docker-scanner image, e.g. registry.example.com/docker-scanner:v1.2.3
+      image: docker-scanner:latest
+
+      # Resource limits — tune to your cluster capacity.
+      # The scanner downloads the vulnerability DB on first run; give it enough
+      # memory to hold the DB and the image layers it unpacks.
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+        limits:
+          cpu: "2"
+          memory: "2Gi"
+
+      env:
+        # ── Registry credentials ──────────────────────────────────────────────
+        # Create a Kubernetes Secret with your registry username and password:
+        #
+        #   kubectl create secret generic registry-credentials \
+        #     --from-literal=username=<user> \
+        #     --from-literal=password=<token-or-password>
+        #
+        # Then reference it here.  The scanner reads REGISTRY_USERNAME and
+        # REGISTRY_PASSWORD from the environment when pulling private images.
+        - name: REGISTRY_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: registry-credentials   # name of the Secret
+              key: username
+        - name: REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: registry-credentials
+              key: password
+
+        # ── Optional proxy settings ───────────────────────────────────────────
+        # Uncomment if the cluster needs a proxy to reach the registry or the
+        # vulnerability DB update server.
+        # - name: HTTPS_PROXY
+        #   value: "http://proxy.example.com:3128"
+        # - name: NO_PROXY
+        #   value: "localhost,127.0.0.1,.cluster.local"
+
+      script: |
+        #!/usr/bin/env sh
+        set -eu
+
+        echo "==> Scanning image: $(params.image-ref)"
+        echo "    Fail on severity : $(params.fail-on-severity)"
+        echo "    Output formats   : $(params.output-formats)"
+        echo "    Report directory : $(workspaces.reports.path)"
+        echo ""
+
+        scanner scan \
+          --image "$(params.image-ref)" \
+          --format "$(params.output-formats)" \
+          --fail-on-severity "$(params.fail-on-severity)" \
+          --output-dir "$(workspaces.reports.path)"
+
+        echo ""
+        echo "==> Scan complete.  Reports written to $(workspaces.reports.path):"
+        ls -lh "$(workspaces.reports.path)"

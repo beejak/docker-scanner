@@ -234,6 +234,75 @@ flowchart TB
 
 ---
 
+## CI/CD ecosystem
+
+All supported CI/CD platforms and how they connect to the scanner.
+
+```mermaid
+flowchart TB
+  subgraph cloud_hosted [Cloud-hosted CI]
+    GHA[GitHub Actions]
+    GL[GitLab CI]
+    CCI[CircleCI]
+    BB[Bitbucket Pipelines]
+    ADO[Azure DevOps]
+  end
+
+  subgraph cloud_build [Cloud-provider build]
+    CB[AWS CodeBuild]
+    GCB[Google Cloud Build]
+  end
+
+  subgraph self_hosted [Self-hosted / Kubernetes]
+    JK[Jenkins]
+    TK[Tekton]
+  end
+
+  subgraph scanner [Scanner]
+    CLI[scanner binary / Docker image]
+    Trivy[Trivy in PATH]
+    CLI --> Trivy
+  end
+
+  subgraph outputs [Report outputs]
+    SARIF[SARIF 2.1]
+    MD[Markdown]
+    HTML[HTML]
+    CSV[CSV]
+    SBOM[CycloneDX SBOM]
+  end
+
+  subgraph security [Security dashboards]
+    GHSec[GitHub Security tab]
+    GLSec[GitLab Security dashboard]
+    SHub[AWS Security Hub]
+    SCC[GCP Security Command Center]
+  end
+
+  GHA --> CLI
+  GL --> CLI
+  CCI --> CLI
+  BB --> CLI
+  ADO --> CLI
+  CB --> CLI
+  GCB --> CLI
+  JK --> CLI
+  TK --> CLI
+
+  CLI --> SARIF
+  CLI --> MD
+  CLI --> HTML
+  CLI --> CSV
+  CLI --> SBOM
+
+  SARIF --> GHSec
+  SARIF --> GLSec
+  SARIF --> SHub
+  SARIF --> SCC
+```
+
+---
+
 ## Test coverage map
 
 How the test suite maps onto the architecture.

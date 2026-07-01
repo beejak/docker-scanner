@@ -1,0 +1,202 @@
+# CircleCI — Container Security Scan
+#
+# What this does:
+#   1. build  — Builds your application image and saves it to the workspace so the
+#               scan job can load it without re-building.
+#   2. scan   — Pulls the scanner image, loads the app image, runs a full scan:
+#               vulnerability detection, SARIF + Markdown + HTML reports.
+#               Fails the pipeline if any CRITICAL or HIGH finding is present.
+#               Stores all report files as CircleCI artifacts.
+#
+# Customise IMAGE_NAME and SCANNER_IMAGE to match your setup.
+# Adjust --fail-on-severity to your risk tolerance.
+#
+# Required CircleCI environment variables (Project Settings → Environment Variables):
+#   REGISTRY_USERNAME   — username for your private image registry (if needed)
+#   REGISTRY_PASSWORD   — password / token for your private registry (if needed)
+
+version: 2.1
+
+# ---------------------------------------------------------------------------
+# Reusable executors
+# ---------------------------------------------------------------------------
+executors:
+  docker-cli:
+    # docker:24-cli gives you the Docker CLI pre-installed.
+    # The machine executor (below, commented out) is an alternative if you need
+    # a full Linux VM with Docker daemon — no DinD service required.
+    docker:
+      - image: docker:24-cli
+    # Alternative: use cimg/base with the docker orb for a managed experience.
+    # docker:
+    #   - image: cimg/base:current
+    # Or use the machine executor (full VM, Docker daemon already running):
+    # machine:
+    #   image: ubuntu-2204:current
+
+# ---------------------------------------------------------------------------
+# Jobs
+# ---------------------------------------------------------------------------
+jobs:
+  # --------------------------------------------------------------------------
+  # build — build the application image and export it to the shared workspace
+  # --------------------------------------------------------------------------
+  build:
+    executor: docker-cli
+
+    environment:
+      # IMAGE_NAME uses the built-in CIRCLE_SHA1 variable so every commit gets
+      # a unique, traceable tag.
+      IMAGE_NAME: app:$CIRCLE_SHA1
+
+    steps:
+      - checkout
+
+      # Start the Docker daemon inside the docker:24-cli container (DinD).
+      # Remove this step if you are using the machine executor.
+      - setup_remote_docker:
+          version: docker24
+          # docker_layer_caching: true   # enable on a paid plan for faster builds
+
+      # (Optional) Log in to a private registry if your base images are private.
+      # Credentials come from CircleCI environment variables — never hard-code them.
+      - run:
+          name: Log in to private registry (optional)
+          command: |
+            if [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ]; then
+              echo "$REGISTRY_PASSWORD" | docker login \
+                --username "$REGISTRY_USERNAME" \
+                --password-stdin
+            fi
+
+      # Build the application image from the Dockerfile in the repo root.
+      # Replace '.' with the path to your Dockerfile if it lives elsewhere.
+      - run:
+          name: Build application image
+          command: docker build -t "$IMAGE_NAME" .
+
+      # Save the image as a tar file so the scan job can load it without
+      # needing access to a registry.  The workspace is the standard
+      # CircleCI mechanism for passing files between jobs in the same workflow.
+      - run:
+          name: Save image to workspace
+          command: |
+            mkdir -p /tmp/docker-images
+            docker save "$IMAGE_NAME" -o /tmp/docker-images/app.tar
+
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - docker-images
+
+  # --------------------------------------------------------------------------
+  # scan — load the saved image and run the container scanner against it
+  # --------------------------------------------------------------------------
+  scan:
+    executor: docker-cli
+
+    environment:
+      IMAGE_NAME: app:$CIRCLE_SHA1
+      # Replace with the published scanner image or your own registry path.
+      SCANNER_IMAGE: ghcr.io/beejak/docker-scanner:latest
+
+    steps:
+      - attach_workspace:
+          at: /tmp
+
+      # Start the Docker daemon (DinD) — same as in the build job.
+      - setup_remote_docker:
+          version: docker24
+
+      # Load the application image that was built and saved in the build job.
+      - run:
+          name: Load application image from workspace
+          command: docker load -i /tmp/docker-images/app.tar
+
+      # Pull the scanner image.
+      # If the scanner image is in a private registry, log in here first using
+      # REGISTRY_USERNAME / REGISTRY_PASSWORD (or separate scanner-registry vars).
+      - run:
+          name: Pull scanner image
+          command: docker pull "$SCANNER_IMAGE"
+
+      # Create a local directory for scan reports.
+      # CircleCI's setup_remote_docker uses a separate Docker host, so we mount
+      # a directory that the remote Docker daemon can write to and then copy the
+      # results back.  The simplest approach: write to a named volume and copy out.
+      - run:
+          name: Create reports volume
+          command: docker volume create scan-reports
+
+      # Run the full scan.
+      #   --image             the image to scan (built above)
+      #   --output-dir        where to write reports inside the container
+      #   --format            produce SARIF (machine-readable), Markdown, and HTML
+      #   --fail-on-severity  exit 1 if any CRITICAL or HIGH vulnerability is found;
+      #                       remove or set to CRITICAL for a more permissive policy
+      - run:
+          name: Run container scan
+          # 'always' exit code capture: we want to upload artifacts even if the
+          # scan fails the build, so we save the exit code and re-raise it after
+          # copying the reports out.
+          command: |
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v scan-reports:/reports \
+              "$SCANNER_IMAGE" scan \
+                --image "$IMAGE_NAME" \
+                --output-dir /reports \
+                --format sarif,markdown,html \
+                --fail-on-severity CRITICAL,HIGH
+            echo $? > /tmp/scan-exit-code
+          # Use 'when: always' on the copy step to ensure reports are retrieved
+          # even if the scan step exits with a non-zero code (policy failure).
+
+      # Copy reports out of the Docker volume into the CircleCI build directory
+      # so they can be uploaded as artifacts.
+      - run:
+          name: Copy reports from Docker volume
+          when: always
+          command: |
+            mkdir -p /tmp/scan-reports
+            # Spin up a minimal container that has the volume attached,
+            # then copy the contents to the build host via 'docker cp'.
+            docker run --name report-exporter \
+              -v scan-reports:/reports \
+              alpine:3 \
+              sh -c "ls /reports"
+            docker cp report-exporter:/reports/. /tmp/scan-reports/
+            docker rm report-exporter
+            docker volume rm scan-reports
+
+      # Store all report files as CircleCI artifacts.
+      # Access them via Artifacts tab on the job detail page.
+      - store_artifacts:
+          path: /tmp/scan-reports
+          destination: scan-reports
+
+      # Re-raise the scanner exit code so the workflow fails on policy violations.
+      - run:
+          name: Propagate scanner exit code
+          when: always
+          command: |
+            CODE=$(cat /tmp/scan-exit-code 2>/dev/null || echo 0)
+            exit "$CODE"
+
+# ---------------------------------------------------------------------------
+# Workflows
+# ---------------------------------------------------------------------------
+workflows:
+  build-and-scan:
+    jobs:
+      # Build first, then scan using the saved image.
+      - build
+      - scan:
+          requires:
+            - build
+          # (Optional) Only run the scan on main/master and pull requests:
+          # filters:
+          #   branches:
+          #     only:
+          #       - main
+          #       - master
