@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const cisaKEVURL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+var cisaKEVURL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 
 type kevCatalog struct {
 	Vulnerabilities []struct {
@@ -32,6 +32,25 @@ type kevEntry struct {
 	ShortDescription string
 	Name             string
 	Ransomware       string
+}
+
+// SetURLForTest overrides the CISA KEV URL and returns the previous value.
+// Exported for cross-package test injection; the ForTest suffix is the Go convention
+// for distinguishing these from production API. Not safe to call during normal operation.
+func SetURLForTest(url string) (prev string) {
+	prev = cisaKEVURL
+	cisaKEVURL = url
+	return prev
+}
+
+// ResetForTest clears the cached catalog so the next Load() re-fetches.
+// Exported for cross-package test injection; see SetURLForTest.
+func ResetForTest() {
+	mu.Lock()
+	defer mu.Unlock()
+	knownExploited = nil
+	kevInfo = nil
+	lastFetch = time.Time{}
 }
 
 // Load fetches the CISA KEV catalog and caches it. Safe to call from multiple goroutines.

@@ -1,0 +1,163 @@
+# AWS CodeBuild Buildspec — Docker Container Security Scan
+#
+# What this does:
+#   1. Builds the scanner from source (or pulls a pre-published image).
+#   2. Logs in to ECR with the CodeBuild execution role (no stored credentials needed).
+#   3. Builds your application image and tags it with the full ECR URI.
+#   4. Runs a full scan: vulnerability detection, runc advisory, SBOM generation.
+#   5. Writes all reports to reports/ and publishes them as CodeBuild artifacts.
+#   6. Exits non-zero if CRITICAL or HIGH findings are present, failing the build.
+#
+# ─── Environment variables ────────────────────────────────────────────────────
+# CodeBuild built-ins (set automatically, no configuration needed):
+#   CODEBUILD_RESOLVED_SOURCE_VERSION  – full commit SHA used as image tag
+#   AWS_DEFAULT_REGION                 – region where the build runs
+#   AWS_ACCOUNT_ID                     – not a built-in; set it in project settings (see below)
+#
+# User-defined (set in CodeBuild project → Environment → Environment variables):
+#   AWS_ACCOUNT_ID   – your 12-digit AWS account ID, e.g. 123456789012
+#   ECR_REPO_NAME    – ECR repository name, e.g. myapp  (default below: myapp)
+#
+# The IAM role attached to the CodeBuild project must have:
+#   ecr:GetAuthorizationToken
+#   ecr:BatchCheckLayerAvailability
+#   ecr:GetDownloadUrlForLayer
+#   ecr:BatchGetImage
+#   ecr:PutImage  (and related push actions)
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: 0.2
+
+env:
+  variables:
+    # Override ECR_REPO_NAME in CodeBuild project settings if your repo differs.
+    ECR_REPO_NAME: "myapp"
+    # SCANNER_IMAGE controls where the scanner comes from.
+    # Option A (default): build from source in the current workspace.
+    # Option B: pull a pre-published image — comment out the build step in
+    #           the install phase and set this to e.g.:
+    #           123456789012.dkr.ecr.us-east-1.amazonaws.com/docker-scanner:latest
+    SCANNER_IMAGE: "docker-scanner:latest"
+
+phases:
+
+  # ── install ──────────────────────────────────────────────────────────────────
+  # Installs build toolchain and the scanner itself.
+  # Docker is available in CodeBuild when the project runs in privileged mode
+  # (Project settings → Environment → Privileged → Enable this flag).
+  install:
+    runtime-versions:
+      # Go is only needed when building the scanner from source.
+      # Remove this block if you pull a pre-built scanner image instead.
+      golang: 1.21
+    commands:
+      # Confirm Docker daemon is running (requires privileged mode in project settings).
+      - echo "==> Verifying Docker is available"
+      - docker version
+
+      # ── Option A: build the scanner from source ──────────────────────────────
+      # This builds the scanner binary and packages it into a local Docker image.
+      - echo "==> Building scanner from source"
+      - go build -o /usr/local/bin/docker-scanner ./cmd/scanner
+      # Wrap the binary in a minimal image so the scan step uses a consistent
+      # container interface (matches the pattern used in other CI examples).
+      - docker build -t "$SCANNER_IMAGE" .
+
+      # ── Option B: pull a pre-published scanner image ─────────────────────────
+      # Uncomment the lines below and remove Option A above if you prefer to pull
+      # a pinned, pre-built image from your own ECR instead of building from source.
+      # - SCANNER_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      # - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" \
+      #     | docker login --username AWS --password-stdin "$SCANNER_REGISTRY"
+      # - docker pull "$SCANNER_REGISTRY/docker-scanner:latest"
+      # - docker tag  "$SCANNER_REGISTRY/docker-scanner:latest" "$SCANNER_IMAGE"
+
+  # ── pre_build ─────────────────────────────────────────────────────────────
+  # Authenticates with ECR so subsequent docker push/pull commands succeed.
+  # Uses the IAM role attached to the CodeBuild project — no stored passwords.
+  pre_build:
+    commands:
+      - echo "==> Logging in to Amazon ECR"
+      # AWS_ACCOUNT_ID must be set as a user-defined env var in project settings.
+      # AWS_DEFAULT_REGION is injected automatically by CodeBuild.
+      - ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" \
+          | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+      - echo "==> ECR login succeeded"
+
+      # Compose the full image URI with the commit SHA as the tag.
+      # CODEBUILD_RESOLVED_SOURCE_VERSION is a CodeBuild built-in — the full
+      # Git commit SHA of the source version being built.
+      - IMAGE_URI="$ECR_REGISTRY/$ECR_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      # Export IMAGE_URI so it is visible to later phases.
+      # CodeBuild does not share shell variables across phases, so we write it
+      # to a sourced file (a common CodeBuild pattern).
+      - echo "export IMAGE_URI=$IMAGE_URI" >> /tmp/build_env.sh
+      - echo "export ECR_REGISTRY=$ECR_REGISTRY" >> /tmp/build_env.sh
+      - echo "Image will be tagged as: $IMAGE_URI"
+
+  # ── build ─────────────────────────────────────────────────────────────────
+  # Builds the application image and pushes it to ECR.
+  build:
+    commands:
+      - source /tmp/build_env.sh
+      - echo "==> Building application image"
+      # Replace 'Dockerfile' with a specific path if your Dockerfile is not at
+      # the repository root, e.g. --file docker/Dockerfile.prod
+      - docker build --tag "$IMAGE_URI" --file Dockerfile .
+
+      - echo "==> Pushing image to ECR"
+      - docker push "$IMAGE_URI"
+
+      # Also push a :latest tag for convenience (optional — remove if undesired).
+      - LATEST_URI="$ECR_REGISTRY/$ECR_REPO_NAME:latest"
+      - docker tag  "$IMAGE_URI" "$LATEST_URI"
+      - docker push "$LATEST_URI"
+
+  # ── post_build ────────────────────────────────────────────────────────────
+  # Runs the security scan against the image just pushed to ECR.
+  # Reports are written to reports/ which is published as a CodeBuild artifact.
+  # The scanner exits non-zero when CRITICAL or HIGH findings are found,
+  # causing the overall build to fail — adjust --fail-on-severity to your policy.
+  post_build:
+    commands:
+      - source /tmp/build_env.sh
+      - echo "==> Creating reports directory"
+      - mkdir -p reports
+
+      - echo "==> Running security scan against $IMAGE_URI"
+      # --fail-on-severity CRITICAL,HIGH  — exit code 1 when any finding at
+      #   these severities exists, which fails the CodeBuild build.
+      #   Change to HIGH or remove the flag to adjust your gate.
+      # --format sarif,markdown,html,csv  — emit all report formats;
+      #   SARIF can be ingested by AWS Security Hub (see docs/ci/aws-codebuild.md).
+      # --check-runtime                   — include runc/containerd advisory check.
+      # --sbom                            — generate a Software Bill of Materials.
+      - docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v "$(pwd)/reports":/reports \
+          "$SCANNER_IMAGE" scan \
+            --image "$IMAGE_URI" \
+            --output-dir /reports \
+            --format sarif,markdown,html,csv \
+            --check-runtime \
+            --sbom \
+            --fail-on-severity CRITICAL,HIGH
+      # NOTE: if you want reports to be published even when the scan fails,
+      # set the step above to continue on error and gate the build via a
+      # subsequent step that checks the SARIF for findings:
+      #   continueOnError equivalent in CodeBuild: use '|| SCAN_FAILED=1' and
+      #   then 'exit ${SCAN_FAILED:-0}' after the artifact copy below.
+
+      - echo "==> Scan complete. Reports written to reports/"
+      - ls -lh reports/
+
+# ── artifacts ─────────────────────────────────────────────────────────────────
+# Publishes everything under reports/ to S3 (configured in CodeBuild project
+# settings under Artifacts → S3 bucket).  Reports are then downloadable from
+# the CodeBuild build detail page.
+artifacts:
+  files:
+    - "reports/**/*"
+  name: scan-reports
+  # discard-paths: yes   # uncomment to flatten the directory structure in S3

@@ -97,7 +97,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Error: --dockerfile is only valid with --image")
 			os.Exit(1)
 		}
-		runScan(context.Background(), opts)
+		os.Exit(runScan(context.Background(), opts))
 	case "db":
 		if len(os.Args) > 2 && os.Args[2] == "update" {
 			// TODO: run Trivy DB update
@@ -129,7 +129,7 @@ type runScanOpts struct {
 	sbom           bool
 }
 
-func runScan(ctx context.Context, opts runScanOpts) {
+func runScan(ctx context.Context, opts runScanOpts) int {
 	target := opts.image
 	if target == "" {
 		target = opts.rootfs
@@ -147,7 +147,7 @@ func runScan(ctx context.Context, opts runScanOpts) {
 	findings, err := scanner.Scan(ctx, scanOpts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "\rScan failed: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Prepend host runc advisory findings when requested.
@@ -181,7 +181,7 @@ func runScan(ctx context.Context, opts runScanOpts) {
 	}
 	if err := report.Generate(enriched, reportOpts); err != nil {
 		fmt.Fprintf(os.Stderr, "\rReport failed: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 	fmt.Fprintf(os.Stderr, "\r%60s\n", "") // clear progress line
 
@@ -200,8 +200,9 @@ func runScan(ctx context.Context, opts runScanOpts) {
 	// Fail-on policy: exit 1 if policy is violated so CI can gate the build
 	if shouldFail, reason := policy.EvaluateFailPolicy(enriched, opts.failOnSeverity, opts.failOnCount); shouldFail {
 		fmt.Fprintln(os.Stderr, reason)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // resolveConfigPath returns the config file path: --config if set, else scanner.yaml or .scanner.yaml in cwd.

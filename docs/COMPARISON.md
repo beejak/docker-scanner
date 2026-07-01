@@ -27,7 +27,7 @@ Unbiased comparison of this project against free and paid container image scanne
 | **Dockerfile scan** | Yes (`--dockerfile`) | Yes (config) | No | Yes | Yes | Yes |
 | **SARIF output** | Yes | Yes | Via Syft/plugins | Yes | Yes | Yes |
 | **Remediation text** | Yes (upgrade path + links) | Fixed version in JSON | Fixed version | Detailed + base image | Yes + base image | Yes + reachability |
-| **CI/CD integration** | Yes (Azure, GitHub, GitLab, Jenkins) | Yes (native + actions) | Yes | Yes (native) | Yes (Docker ecosystem) | Yes |
+| **CI/CD integration** | Yes (GitHub, GitLab, Azure, Jenkins, CircleCI, AWS CodeBuild, GCB, Bitbucket, Tekton) | Yes (native + actions) | Yes | Yes (native) | Yes (Docker ecosystem) | Yes |
 | **Severity filter** | Yes | Yes | Yes | Yes | Yes | Yes |
 | **Fail pipeline on severity** | Yes (`--fail-on-severity`, `--fail-on-count`) | Yes (`--exit-code 1`) | Yes | Yes | Yes (policy) | Yes (policy) |
 | **Config file** | Yes (`scanner.yaml`, `.scanner.yaml`, `--config`) | Yes | Yes (`.grype.yaml`) | Yes | Yes | Yes |
@@ -48,7 +48,7 @@ Unbiased comparison of this project against free and paid container image scanne
 
 1. **Remediation-first design** — We add explicit remediation text ("Upgrade X from Y to Z") and CVE links to every finding in SARIF/Markdown/HTML. Trivy and Grype expose fixed version in JSON but don't bundle a "remediation report" in the same way; we do.
 2. **Multi-format report from one run** — SARIF (for Azure/GitHub Security tab) plus Markdown and HTML in one CLI invocation. Many setups use Trivy for SARIF and something else for human-readable; we unify that.
-3. **CI-agnostic** — Same CLI and Docker image for Azure, GitHub, GitLab, Jenkins; examples and docs for each. We're not tied to one vendor.
+3. **CI-agnostic** — Same CLI and Docker image works in GitHub Actions, GitLab CI, Azure DevOps, Jenkins, CircleCI, AWS CodeBuild, Google Cloud Build, Bitbucket Pipelines, and Tekton; annotated templates and docs for all nine. Not tied to any vendor.
 4. **Offline from day one** — `--offline` and `--cache-dir` are first-class; good for air-gapped or locked-down CI.
 5. **Baseline shipped** — `go run ./cmd/baseline` scans 100+ images in parallel with a summary CSV/Markdown and HTML dashboard. Differentiator vs plain Trivy/Grype; aligns with commercial tools.
 6. **Web UI shipped** — `go run ./cmd/server` starts an HTTP server; paste or drop an image in the browser and get live scan results via SSE. Trivy and Grype are CLI-only. Aligns with Snyk/Docker Scout/Aqua.
@@ -97,7 +97,7 @@ Unbiased comparison of this project against free and paid container image scanne
 | Dimension | Our position |
 |-----------|----------------|
 | **Remediation & report** | Strong: explicit remediation text + SARIF/MD/HTML/CSV in one run. |
-| **CI integration** | Strong: same CLI/image for Azure, GitHub, GitLab, Jenkins. |
+| **CI integration** | Strong: same CLI/image for all 9 platforms — GitHub, GitLab, Azure, Jenkins, CircleCI, AWS CodeBuild, GCB, Bitbucket, Tekton. |
 | **Offline** | Strong: first-class `--offline` and cache. |
 | **Policy & fail-on** | Strong: `--fail-on-severity`, `--fail-on-count`, config file (`scanner.yaml`). Ignore/suppression file still planned. |
 | **Dockerfile & SBOM** | Strong: Dockerfile scan (`--dockerfile`) and CycloneDX SBOM (`--sbom`). |

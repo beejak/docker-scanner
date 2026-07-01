@@ -1,0 +1,133 @@
+# Google Cloud Build — Container Security Scan
+#
+# What this does:
+#   1. Builds your application image and pushes it to Artifact Registry
+#   2. Runs the docker-scanner against the pushed image
+#   3. Fails the build if any CRITICAL or HIGH findings are present
+#   4. Stores all reports (SARIF, Markdown, HTML) as Cloud Build artifacts in GCS
+#
+# Substitution variables:
+#   $PROJECT_ID   — injected automatically by Cloud Build
+#   $SHORT_SHA    — injected automatically by Cloud Build (first 7 chars of commit SHA)
+#   $_AR_REGION   — user-defined; set in the trigger or pass with --substitutions
+#                   e.g. us-central1
+#   $_AR_REPO     — user-defined; your Artifact Registry Docker repository name
+#                   e.g. my-app-images
+#   $_APP_IMAGE   — user-defined; the image name inside the repo
+#                   e.g. my-app
+#
+# To run manually:
+#   gcloud builds submit \
+#     --config ci/google-cloud-build/cloudbuild.yaml \
+#     --substitutions _AR_REGION=us-central1,_AR_REPO=my-app-images,_APP_IMAGE=my-app .
+
+substitutions:
+  _AR_REGION: us-central1          # override in your Cloud Build trigger
+  _AR_REPO: my-app-images          # override in your Cloud Build trigger
+  _APP_IMAGE: my-app               # override in your Cloud Build trigger
+  _REPORTS_BUCKET: ${PROJECT_ID}-scan-reports  # GCS bucket for report artifacts
+
+steps:
+  # ── Step 1: Build the application image ──────────────────────────────────────
+  # Uses the official Cloud Builders docker image to build from the repo root.
+  # The image is tagged with the Artifact Registry path so it can be pushed directly.
+  - name: gcr.io/cloud-builders/docker
+    id: build-app-image
+    args:
+      - build
+      - --tag
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_APP_IMAGE}:$SHORT_SHA
+      - --tag
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_APP_IMAGE}:latest
+      - .
+    # waitFor: ['-'] means this step starts immediately (no dependency).
+    waitFor: ['-']
+
+  # ── Step 2: Push the application image to Artifact Registry ──────────────────
+  # Pushes both the SHA-tagged and 'latest' tags.
+  # The Cloud Build service account must have the Artifact Registry Writer role
+  # on the repository (or project). See docs/ci/google-cloud-build.md.
+  - name: gcr.io/cloud-builders/docker
+    id: push-app-image
+    args:
+      - push
+      - --all-tags
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_APP_IMAGE}
+    waitFor:
+      - build-app-image
+
+  # ── Step 3: Build the scanner image ──────────────────────────────────────────
+  # Build the docker-scanner image from this repository.
+  # Alternatively, pull a pre-published image and skip this step.
+  - name: gcr.io/cloud-builders/docker
+    id: build-scanner-image
+    args:
+      - build
+      - --tag
+      - scanner:latest
+      - .
+    waitFor: ['-']
+
+  # ── Step 4: Create the reports output directory ───────────────────────────────
+  # Cloud Build steps share /workspace; create a sub-directory for scan output.
+  - name: ubuntu
+    id: create-reports-dir
+    args:
+      - mkdir
+      - -p
+      - /workspace/reports
+    waitFor: ['-']
+
+  # ── Step 5: Run the container scanner ────────────────────────────────────────
+  # Scans the image that was just pushed to Artifact Registry.
+  # --format sarif,markdown,html  writes three report files to /workspace/reports
+  # --fail-on-severity CRITICAL,HIGH  exits 1 if any CRITICAL or HIGH CVE is found,
+  #   which marks the Cloud Build step (and the overall build) as failed.
+  #
+  # The Docker socket is mounted so the scanner can pull the image from the daemon
+  # cache (it was already pulled during push). Alternatively, use --image with the
+  # full registry path and omit the socket mount — the scanner will pull it fresh.
+  - name: scanner:latest
+    id: run-scanner
+    entrypoint: /scanner
+    args:
+      - scan
+      - --image
+      - ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_APP_IMAGE}:$SHORT_SHA
+      - --output-dir
+      - /workspace/reports
+      - --format
+      - sarif,markdown,html
+      - --fail-on-severity
+      - CRITICAL,HIGH
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+    waitFor:
+      - push-app-image
+      - build-scanner-image
+      - create-reports-dir
+
+# ── Artifacts: upload reports to GCS ─────────────────────────────────────────
+# Cloud Build copies these files to the GCS bucket after all steps complete,
+# even if a step fails (so you get the report even on a policy-fail exit).
+# The bucket must exist and the Cloud Build service account must have the
+# Storage Object Creator role. See docs/ci/google-cloud-build.md.
+artifacts:
+  objects:
+    location: gs://${_REPORTS_BUCKET}/$SHORT_SHA/
+    paths:
+      - /workspace/reports/report.sarif
+      - /workspace/reports/report.md
+      - /workspace/reports/report.html
+
+# ── Options ──────────────────────────────────────────────────────────────────
+options:
+  # Use a machine with enough memory/CPU for image builds.
+  machineType: E2_HIGHCPU_8
+  # Stream logs to Cloud Logging in real time.
+  logging: CLOUD_LOGGING_ONLY
+
+# ── Timeout ──────────────────────────────────────────────────────────────────
+# Overall build timeout; increase if your app image build takes a long time.
+timeout: 1800s

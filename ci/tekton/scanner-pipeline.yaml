@@ -1,0 +1,275 @@
+# Tekton Pipeline — build → scan → notify
+#
+# Wires three stages together:
+#   1. build   — builds the application image with Kaniko and pushes it to a registry
+#   2. scan    — runs docker-scanner against the freshly-built image
+#   3. notify  — sends a Slack/webhook notification (runs even when scan fails,
+#                so the team is always informed of results)
+#
+# The pipeline fails if the scan step exits non-zero (findings at or above
+# fail-on-severity). The notify step uses `when` expressions so it can fire
+# on both success and failure paths via two separate conditional tasks.
+#
+# Apply:
+#   kubectl apply -f ci/tekton/scanner-pipeline.yaml
+#
+# Then create a PipelineRun — see docs/ci/tekton.md for a full example.
+
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: build-scan-notify
+  labels:
+    app.kubernetes.io/version: "1.0"
+  annotations:
+    tekton.dev/displayName: "Build → Scan → Notify"
+    tekton.dev/description: >
+      Builds a container image with Kaniko, scans it for vulnerabilities with
+      docker-scanner, and sends a notification with the outcome.
+spec:
+  description: >
+    Full CI pipeline: image build, security scan, and result notification.
+    The pipeline status reflects the scan outcome — CRITICAL/HIGH findings
+    cause a pipeline failure so the PipelineRun shows as Failed in the dashboard.
+
+  params:
+    # ── Build params ──────────────────────────────────────────────────────────
+    - name: git-url
+      type: string
+      description: Git repository URL to clone and build.
+
+    - name: git-revision
+      type: string
+      default: "main"
+      description: Branch, tag, or commit SHA to build.
+
+    - name: image-ref
+      type: string
+      description: >
+        Destination image reference (registry/repo:tag) that Kaniko pushes
+        and docker-scanner then scans.
+
+    # ── Scan params ───────────────────────────────────────────────────────────
+    - name: fail-on-severity
+      type: string
+      default: "CRITICAL,HIGH"
+      description: Severity levels that fail the scan step (and the pipeline).
+
+    - name: output-formats
+      type: string
+      default: "sarif,markdown,html"
+      description: Comma-separated report formats to generate.
+
+    # ── Notify params ─────────────────────────────────────────────────────────
+    - name: notification-webhook-url
+      type: string
+      default: ""
+      description: >
+        Webhook URL for the notify step (Slack incoming webhook, Teams, etc.).
+        Leave empty to skip notification.
+
+  workspaces:
+    - name: source
+      description: Cloned source code, shared between git-clone and kaniko.
+    - name: reports
+      description: Scan reports output; bind a PVC to persist across steps.
+    - name: docker-config
+      description: >
+        Workspace containing a Docker config.json for registry authentication.
+        Mount a Secret of type kubernetes.io/dockerconfigjson here, e.g.:
+          workspaces:
+            - name: docker-config
+              secret:
+                secretName: registry-dockerconfig
+
+  tasks:
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 1 — Clone source
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: git-clone
+      taskRef:
+        # Use the git-clone Task from the Tekton Catalog:
+        # https://hub.tekton.dev/tekton/task/git-clone
+        resolver: hub
+        params:
+          - name: catalog
+            value: tekton
+          - name: type
+            value: task
+          - name: name
+            value: git-clone
+          - name: version
+            value: "0.9"
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+      workspaces:
+        - name: output
+          workspace: source
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 2 — Build and push image with Kaniko
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: build
+      runAfter:
+        - git-clone
+      taskRef:
+        # Use the kaniko Task from the Tekton Catalog:
+        # https://hub.tekton.dev/tekton/task/kaniko
+        resolver: hub
+        params:
+          - name: catalog
+            value: tekton
+          - name: type
+            value: task
+          - name: name
+            value: kaniko
+          - name: version
+            value: "0.6"
+      params:
+        - name: IMAGE
+          value: $(params.image-ref)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: CONTEXT
+          value: ./
+        # Pass extra Kaniko args if needed, e.g. build args or cache settings.
+        - name: EXTRA_ARGS
+          value:
+            - "--cache=true"
+            - "--cache-ttl=24h"
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: docker-config
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 3 — Security scan
+    # The pipeline fails here if findings meet the severity threshold.
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: scan
+      runAfter:
+        - build
+      taskRef:
+        # Reference the Task applied from scanner-task.yaml
+        kind: Task
+        name: docker-scanner
+      params:
+        - name: image-ref
+          value: $(params.image-ref)
+        - name: fail-on-severity
+          value: $(params.fail-on-severity)
+        - name: output-formats
+          value: $(params.output-formats)
+      workspaces:
+        - name: reports
+          workspace: reports
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 4a — Notify on scan success
+    # ──────────────────────────────────────────────────────────────────────────
+    - name: notify-success
+      runAfter:
+        - scan
+      when:
+        # Only run when scan succeeded and a webhook URL was provided.
+        - input: $(tasks.scan.status)
+          operator: in
+          values: ["Succeeded"]
+        - input: $(params.notification-webhook-url)
+          operator: notin
+          values: [""]
+      taskSpec:
+        params:
+          - name: webhook-url
+          - name: image-ref
+        steps:
+          - name: send
+            image: curlimages/curl:8.7.1
+            script: |
+              #!/usr/bin/env sh
+              set -eu
+              curl -sS -X POST "$(params.webhook-url)" \
+                -H "Content-Type: application/json" \
+                -d "{\"text\": \":white_check_mark: Security scan *passed* for \`$(params.image-ref)\`. No CRITICAL/HIGH findings.\"}"
+      params:
+        - name: webhook-url
+          value: $(params.notification-webhook-url)
+        - name: image-ref
+          value: $(params.image-ref)
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 4b — Notify on scan failure
+    # Uses finally so it runs even when the scan task fails.
+    # ──────────────────────────────────────────────────────────────────────────
+
+  finally:
+    - name: notify-failure
+      when:
+        - input: $(tasks.scan.status)
+          operator: in
+          values: ["Failed"]
+        - input: $(params.notification-webhook-url)
+          operator: notin
+          values: [""]
+      taskSpec:
+        params:
+          - name: webhook-url
+          - name: image-ref
+        steps:
+          - name: send
+            image: curlimages/curl:8.7.1
+            script: |
+              #!/usr/bin/env sh
+              set -eu
+              curl -sS -X POST "$(params.webhook-url)" \
+                -H "Content-Type: application/json" \
+                -d "{\"text\": \":x: Security scan *failed* for \`$(params.image-ref)\`. CRITICAL or HIGH findings were detected — check the scan report.\"}"
+      params:
+        - name: webhook-url
+          value: $(params.notification-webhook-url)
+        - name: image-ref
+          value: $(params.image-ref)
+
+---
+# ── Example PipelineRun ───────────────────────────────────────────────────────
+# Copy this block, fill in the values, and apply it to trigger a run:
+#   kubectl apply -f my-pipelinerun.yaml
+#
+# apiVersion: tekton.dev/v1
+# kind: PipelineRun
+# metadata:
+#   generateName: build-scan-notify-run-
+# spec:
+#   pipelineRef:
+#     name: build-scan-notify
+#   params:
+#     - name: git-url
+#       value: "https://github.com/example/myapp.git"
+#     - name: git-revision
+#       value: "main"
+#     - name: image-ref
+#       value: "registry.example.com/myapp:$(context.pipelineRun.name)"
+#     - name: fail-on-severity
+#       value: "CRITICAL,HIGH"
+#     - name: output-formats
+#       value: "sarif,markdown,html"
+#     - name: notification-webhook-url
+#       value: "https://hooks.slack.com/services/T000/B000/xxxx"
+#   workspaces:
+#     - name: source
+#       volumeClaimTemplate:
+#         spec:
+#           accessModes: [ReadWriteOnce]
+#           resources:
+#             requests:
+#               storage: 1Gi
+#     - name: reports
+#       persistentVolumeClaim:
+#         claimName: scan-reports-pvc   # pre-create this PVC
+#     - name: docker-config
+#       secret:
+#         secretName: registry-dockerconfig

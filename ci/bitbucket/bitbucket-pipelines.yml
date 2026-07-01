@@ -1,0 +1,127 @@
+# Bitbucket Pipelines — Container Security Scan
+#
+# What this does:
+#   1. Builds your application image tagged with the commit SHA
+#   2. Builds the docker-scanner image from this repository
+#   3. Runs the scanner against the application image
+#   4. Fails the pipeline if any CRITICAL or HIGH findings are present
+#   5. Stores SARIF and Markdown reports as Bitbucket pipeline artifacts
+#
+# Repository Variables (Settings → Repository Variables):
+#   REGISTRY_URL       — your container registry host, e.g. 123456789.dkr.ecr.us-east-1.amazonaws.com
+#   REGISTRY_USERNAME  — registry username or AWS access key
+#   REGISTRY_PASSWORD  — registry password or AWS secret key (mark as Secured)
+#
+# Bitbucket-injected variables used here:
+#   $BITBUCKET_REPO_SLUG  — the repository slug (used as the image name)
+#   $BITBUCKET_COMMIT     — the full commit SHA
+#   $BITBUCKET_BRANCH     — the current branch name
+#
+# See docs/ci/bitbucket-pipelines.md for setup instructions.
+
+image: docker:27
+
+definitions:
+  services:
+    docker:
+      memory: 3072   # MB; increase if your image build requires more memory
+
+  # Reusable step caches
+  caches:
+    docker: /var/lib/docker
+
+pipelines:
+
+  # ── Default pipeline ──────────────────────────────────────────────────────────
+  # Runs on every push to any branch.
+  default:
+    - step:
+        name: Build and scan
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          # ── Log in to your container registry ──────────────────────────────
+          # Remove or replace this block if you are scanning a local image only.
+          - echo "Logging in to registry..."
+          - echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+
+          # ── Build the application image ─────────────────────────────────────
+          # Tagged with the Bitbucket repo slug and full commit SHA.
+          - echo "Building application image..."
+          - docker build --tag "$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT" .
+
+          # ── Build the scanner image ─────────────────────────────────────────
+          # Built from this repository's Dockerfile.
+          # Alternatively, pull a pre-published image:
+          #   docker pull <registry>/docker-scanner:latest
+          #   docker tag  <registry>/docker-scanner:latest scanner:latest
+          - echo "Building scanner image..."
+          - docker build --tag scanner:latest .
+
+          # ── Create reports directory ────────────────────────────────────────
+          - mkdir -p reports
+
+          # ── Run the container scanner ───────────────────────────────────────
+          # --format sarif,markdown  writes report.sarif and report.md to /reports
+          # --fail-on-severity CRITICAL,HIGH  exits 1 if any CRITICAL or HIGH CVE
+          #   is present, which marks the pipeline step as failed.
+          - echo "Running container scan..."
+          - |
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$(pwd)/reports:/reports" \
+              scanner:latest scan \
+                --image "$BITBUCKET_REPO_SLUG:$BITBUCKET_COMMIT" \
+                --output-dir /reports \
+                --format sarif,markdown \
+                --fail-on-severity CRITICAL,HIGH
+
+        # ── Artifacts ─────────────────────────────────────────────────────────
+        # Bitbucket stores these files and makes them available under
+        # the "Artifacts" section of the pipeline run (and via Downloads).
+        artifacts:
+          - reports/report.sarif
+          - reports/report.md
+
+  # ── Custom "scan" pipeline ────────────────────────────────────────────────────
+  # Triggered manually from the Pipelines UI or via the Bitbucket API.
+  # Useful for on-demand scans without a code push, e.g. nightly CVE sweeps.
+  custom:
+    scan:
+      - step:
+          name: On-demand container scan
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            # Log in to registry
+            - echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+
+            # Pull the latest application image from the registry instead of building.
+            # Change the image ref to match your registry and image name.
+            - docker pull "$REGISTRY_URL/$BITBUCKET_REPO_SLUG:latest"
+            - docker tag  "$REGISTRY_URL/$BITBUCKET_REPO_SLUG:latest" "$BITBUCKET_REPO_SLUG:latest"
+
+            # Build scanner
+            - docker build --tag scanner:latest .
+
+            # Create reports directory
+            - mkdir -p reports
+
+            # Run scan against the pulled image
+            - |
+              docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$(pwd)/reports:/reports" \
+                scanner:latest scan \
+                  --image "$BITBUCKET_REPO_SLUG:latest" \
+                  --output-dir /reports \
+                  --format sarif,markdown \
+                  --fail-on-severity CRITICAL,HIGH
+
+          artifacts:
+            - reports/report.sarif
+            - reports/report.md

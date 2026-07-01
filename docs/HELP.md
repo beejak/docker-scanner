@@ -38,7 +38,7 @@ You can run it from the command line (CLI) or open the web page to get the exact
 It depends how you want to run the scanner:
 
 - **Option 1 — Docker only:** You only need **Docker**. You build the scanner once as a container image, then run it and point it at any image you want to check. No Go or Trivy on your machine.
-- **Option 2 — From source:** You need **Go** (version 1.21 or newer) and **Trivy**. The scanner uses Trivy under the hood to find vulnerabilities; Go is used to build and run the scanner.
+- **Option 2 — From source:** You need **Go** (version 1.25 or newer) and **Trivy**. The scanner uses Trivy under the hood to find vulnerabilities; Go is used to build and run the scanner.
 
 **One script to install dependencies (Go + Trivy) on your machine:**
 

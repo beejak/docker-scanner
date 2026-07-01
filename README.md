@@ -4,11 +4,12 @@
 
 **Production-grade container vulnerability scanner with enriched remediation, CI/CD integration, and runtime advisory.**
 
-[![Go 1.21+](https://img.shields.io/badge/Go-1.21%2B-00ADD8?style=flat-square&logo=go)](https://golang.org)
+[![Go 1.25+](https://img.shields.io/badge/Go-1.25%2B-00ADD8?style=flat-square&logo=go)](https://golang.org)
 [![Powered by Trivy](https://img.shields.io/badge/Powered%20by-Trivy-1904DA?style=flat-square)](https://github.com/aquasecurity/trivy)
 [![CISA KEV](https://img.shields.io/badge/Enriched%20with-CISA%20KEV-red?style=flat-square)](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
 [![OSV.dev](https://img.shields.io/badge/Enriched%20with-OSV.dev-blue?style=flat-square)](https://osv.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![CI](https://github.com/beejak/docker-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/beejak/docker-scanner/actions/workflows/ci.yml)
 
 Scan Docker/Podman images and LXC rootfs for CVEs · Enrich with CISA KEV, OSV.dev, and runc advisories · Output SARIF, Markdown, HTML, CSV, and CycloneDX SBOM · Gate CI/CD pipelines on severity
 
@@ -56,7 +57,7 @@ docker run --rm \
 
 Reports land in `./reports/`. Open `report.html` in a browser or `report.md` in any Markdown viewer.
 
-### Option B — From source (Go 1.21+ and Trivy required)
+### Option B — From source (Go 1.25+ and Trivy required)
 
 ```bash
 # Install Go + Trivy in one step (runs in background)
@@ -470,6 +471,18 @@ pipeline {
 
 > Full template: `ci/jenkins/Jenkinsfile.example`
 
+### More platforms
+
+| Platform | Template | Guide |
+|----------|----------|-------|
+| CircleCI | `ci/circleci/config.example.yml` | [docs/ci/circleci.md](docs/ci/circleci.md) |
+| AWS CodeBuild | `ci/aws-codebuild/buildspec.yml` | [docs/ci/aws-codebuild.md](docs/ci/aws-codebuild.md) |
+| Google Cloud Build | `ci/google-cloud-build/cloudbuild.yaml` | [docs/ci/google-cloud-build.md](docs/ci/google-cloud-build.md) |
+| Bitbucket Pipelines | `ci/bitbucket/bitbucket-pipelines.yml` | [docs/ci/bitbucket-pipelines.md](docs/ci/bitbucket-pipelines.md) |
+| Tekton | `ci/tekton/scanner-task.yaml` | [docs/ci/tekton.md](docs/ci/tekton.md) |
+
+> See [docs/ci/README.md](docs/ci/README.md) for all nine supported platforms.
+
 ### CI Quick-reference
 
 | Goal | Flag |
@@ -619,7 +632,7 @@ Browser → GET /api/scan?image=alpine:latest
 
 The server runs the exact same pipeline as the CLI: Trivy scan → runc advisory (if enabled) → CISA KEV + OSV.dev enrichment → findings returned as JSON. One scan at a time is enforced server-side.
 
-> **Requires:** Go 1.21+ and Trivy in PATH. Docker must be running so Trivy can pull images not already cached locally.
+> **Requires:** Go 1.25+ and Trivy in PATH. Docker must be running so Trivy can pull images not already cached locally.
 
 ---
 
@@ -644,7 +657,7 @@ docker-scanner/
 ├── ide/
 │   ├── vscode/         # VS Code / Cursor extension
 │   └── jetbrains/      # IntelliJ / GoLand plugin
-├── ci/                 # Pipeline templates (GitHub, Azure, GitLab, Jenkins)
+├── ci/                 # Pipeline templates (GitHub, Azure, GitLab, Jenkins, CircleCI, CodeBuild, GCB, Bitbucket, Tekton)
 ├── docs/               # Full documentation set
 ├── tests/
 │   ├── integration/    # Integration tests (require Trivy + Docker)
@@ -685,6 +698,7 @@ go test -tags=integration ./tests/integration/... -v
 | `pkg/scanner` | 4 — Trivy JSON parsing, misconfig, file paths | `trivyVulnToFinding` |
 | `pkg/policy` | 4 — fail-on-severity, fail-on-count, parse edge cases | `EvaluateFailPolicy`, `ParseFailOnCount` |
 | `pkg/config` | 3 — YAML load, missing file, auto-detect | `Load`, `Find` |
+| `cmd/*` | Unit tests for all cmd packages (cli, server, lxc) covering flag parsing, handler wiring, and error paths | All entry-point commands |
 
 ---
 

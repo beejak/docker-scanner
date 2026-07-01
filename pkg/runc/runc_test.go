@@ -1,6 +1,12 @@
 package runc
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -118,14 +124,23 @@ func TestAdvisoryFindings_unparseable(t *testing.T) {
 }
 
 func TestAdvisoryFindings_prefixed(t *testing.T) {
-	// Versions like "v1.1.11" or "1.1.11-rc2" should still parse the semver core.
+	// "v" prefix should still parse correctly.
 	findings := AdvisoryFindings("v1.1.11")
 	if len(findings) != len(advisories) {
 		t.Errorf("expected %d findings for v1.1.11, got %d", len(advisories), len(findings))
 	}
+
+	// Per semver, X.Y.Z-pre < X.Y.Z: a pre-release of the fixed version is still vulnerable.
+	// 1.2.8-rc1 < 1.2.8 (fixed), so all three 1.2.8 advisories should fire.
+	advisories128 := 0
+	for _, a := range advisories {
+		if a.FixedSemver == [3]int{1, 2, 8} {
+			advisories128++
+		}
+	}
 	findings = AdvisoryFindings("1.2.8-rc1")
-	if len(findings) != 0 {
-		t.Errorf("expected 0 findings for 1.2.8-rc1, got %d", len(findings))
+	if len(findings) != advisories128 {
+		t.Errorf("expected %d findings for 1.2.8-rc1 (pre-release of fixed version), got %d", advisories128, len(findings))
 	}
 }
 
@@ -164,5 +179,142 @@ func TestAdvisoryTable_uniqueCVEIDs(t *testing.T) {
 			t.Errorf("duplicate CVEID in advisory table: %s", a.CVEID)
 		}
 		seen[a.CVEID] = true
+	}
+}
+
+// --- HostVersion ---
+
+// fakeExec creates a directory with small fake executables that print a
+// canned response and exit 0. The directory is prepended to PATH so that
+// HostVersion picks them up. Returns a cleanup function.
+func fakeExec(t *testing.T, scripts map[string]string) (cleanup func()) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("fake binary test not supported on Windows")
+	}
+	dir := t.TempDir()
+	for name, body := range scripts {
+		path := filepath.Join(dir, name)
+		content := fmt.Sprintf("#!/bin/sh\n%s\n", body)
+		if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+			t.Fatalf("write fake binary %s: %v", name, err)
+		}
+	}
+	origPATH := os.Getenv("PATH")
+	os.Setenv("PATH", dir+string(os.PathListSeparator)+origPATH)
+	return func() { os.Setenv("PATH", origPATH) }
+}
+
+func TestHostVersion_dockerServerComponents(t *testing.T) {
+	// Docker 20+ JSON: version under Server.Components
+	payload := dockerVersionJSON{
+		Server: &struct {
+			Components []struct {
+				Name    string            `json:"Name"`
+				Details map[string]string `json:"Details"`
+			} `json:"Components"`
+		}{
+			Components: []struct {
+				Name    string            `json:"Name"`
+				Details map[string]string `json:"Details"`
+			}{
+				{Name: "runc", Details: map[string]string{"Version": "1.1.12"}},
+			},
+		},
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	cleanup := fakeExec(t, map[string]string{
+		"docker": fmt.Sprintf(`echo '%s'`, string(payloadJSON)),
+	})
+	defer cleanup()
+
+	ver, err := HostVersion(context.Background())
+	if err != nil {
+		t.Fatalf("HostVersion() error = %v", err)
+	}
+	if ver != "1.1.12" {
+		t.Errorf("HostVersion() = %q; want 1.1.12", ver)
+	}
+}
+
+func TestHostVersion_dockerTopLevelComponents(t *testing.T) {
+	// Older Docker JSON: runc under top-level Components (no Server wrapper).
+	type comp struct {
+		Name    string            `json:"Name"`
+		Details map[string]string `json:"Details"`
+	}
+	type topLevel struct {
+		Components []comp `json:"Components"`
+	}
+	payload, _ := json.Marshal(topLevel{
+		Components: []comp{
+			{Name: "runc", Details: map[string]string{"Version": "1.2.7"}},
+		},
+	})
+	cleanup := fakeExec(t, map[string]string{
+		"docker": fmt.Sprintf(`echo '%s'`, string(payload)),
+	})
+	defer cleanup()
+
+	ver, err := HostVersion(context.Background())
+	if err != nil {
+		t.Fatalf("HostVersion() error = %v", err)
+	}
+	if ver != "1.2.7" {
+		t.Errorf("HostVersion() = %q; want 1.2.7", ver)
+	}
+}
+
+func TestHostVersion_runcFallback(t *testing.T) {
+	// docker fails; runc --version succeeds.
+	cleanup := fakeExec(t, map[string]string{
+		"docker": `exit 1`,
+		"runc":   `printf 'runc version 1.1.15\ncommit: abc123\n'`,
+	})
+	defer cleanup()
+
+	ver, err := HostVersion(context.Background())
+	if err != nil {
+		t.Fatalf("HostVersion() error = %v", err)
+	}
+	if ver != "1.1.15" {
+		t.Errorf("HostVersion() = %q; want 1.1.15", ver)
+	}
+}
+
+func TestHostVersion_neitherAvailable(t *testing.T) {
+	// Neither docker nor runc in PATH.
+	cleanup := fakeExec(t, map[string]string{}) // empty dir, nothing in PATH beyond it
+	defer cleanup()
+
+	// Override PATH to contain only the empty temp dir so nothing resolves.
+	dir := t.TempDir()
+	origPATH := os.Getenv("PATH")
+	os.Setenv("PATH", dir)
+	defer os.Setenv("PATH", origPATH)
+
+	ver, err := HostVersion(context.Background())
+	if err != nil {
+		t.Fatalf("HostVersion() error = %v; want nil (graceful skip)", err)
+	}
+	if ver != "" {
+		t.Errorf("HostVersion() = %q; want empty string when nothing available", ver)
+	}
+}
+
+func TestHostVersion_malformedDockerJSON(t *testing.T) {
+	// docker outputs garbage JSON — should fall through to runc fallback.
+	cleanup := fakeExec(t, map[string]string{
+		"docker": `echo 'not-json'`,
+		"runc":   `printf 'runc version 1.2.8\n'`,
+	})
+	defer cleanup()
+
+	ver, err := HostVersion(context.Background())
+	if err != nil {
+		t.Fatalf("HostVersion() error = %v", err)
+	}
+	if ver != "1.2.8" {
+		t.Errorf("HostVersion() = %q; want 1.2.8 (runc fallback)", ver)
 	}
 }
