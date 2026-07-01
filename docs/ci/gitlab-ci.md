@@ -74,7 +74,8 @@ build:
     # Authenticate to the GitLab Container Registry using the auto-injected
     # short-lived job token. CI_REGISTRY_USER and CI_REGISTRY_PASSWORD are
     # rotated each pipeline run — no manual secret management required.
-    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY"
+    - |
+      echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" \
         --username "$CI_REGISTRY_USER" --password-stdin
   script:
     # Build the application image and tag it with the immutable SHA ref.
@@ -96,16 +97,17 @@ container-scan:
   needs: [build]
   before_script:
     # Re-authenticate so this job can pull the image pushed by the build job.
-    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY"
+    - |
+      echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" \
         --username "$CI_REGISTRY_USER" --password-stdin
   script:
     # Pull the exact image that was just built.
     - docker pull "$IMAGE_NAME"
 
-    # Build the scanner image from source.
-    # If you publish the scanner separately, replace this with:
-    #   docker pull "$SCANNER_IMAGE"
-    - docker build -t "$SCANNER_IMAGE" .
+    # Pull the published scanner image from GHCR.
+    # To build from source instead, replace with: docker build -t "$SCANNER_IMAGE" /path/to/docker-scanner
+    - docker pull ghcr.io/beejak/docker-scanner:latest
+    - docker tag ghcr.io/beejak/docker-scanner:latest "$SCANNER_IMAGE"
 
     # Create the reports directory on the runner host.
     - mkdir -p reports

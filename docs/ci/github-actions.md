@@ -128,15 +128,15 @@ jobs:
       - name: Build application image
         run: docker build -t ${{ env.IMAGE_NAME }} .
 
-      # Build the scanner image once; reuse across steps via the shared daemon.
-      - name: Build scanner image
-        run: docker build -t ${{ env.SCANNER_IMAGE }} .
-        working-directory: ${{ github.workspace }}
-        # If the scanner image is published to a registry, pull instead of build:
-        # run: |
-        #   echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-        #   docker pull ghcr.io/beejak/docker-scanner:latest
-        #   docker tag ghcr.io/beejak/docker-scanner:latest ${{ env.SCANNER_IMAGE }}
+      # Pull the published scanner image from GHCR. No source code required.
+      - name: Pull scanner image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ghcr.io/beejak/docker-scanner:latest
+          docker tag ghcr.io/beejak/docker-scanner:latest ${{ env.SCANNER_IMAGE }}
+        # To build the scanner from source instead (e.g. in a fork or dev workflow),
+        # replace the run block above with:
+        #   run: docker build -t ${{ env.SCANNER_IMAGE }} /path/to/docker-scanner
 
       - name: Create reports directory
         run: mkdir -p reports
@@ -313,7 +313,7 @@ If you need cross-organisation access or your runner environment cannot use `GIT
       --password-stdin
 ```
 
-Fine-grained PATs do not yet support package registry operations as of mid-2025; use Classic PATs for GHCR.
+Fine-grained PATs do not support package registry operations; use Classic PATs for GHCR. See [GitHub's PAT documentation](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for current scope details.
 
 ## Setting registry secrets
 
