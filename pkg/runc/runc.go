@@ -122,6 +122,7 @@ func HostVersion(ctx context.Context) (string, error) {
 // AdvisoryFindings returns scanner.Finding entries for each advisory that applies
 // to the given runc version string. Returns nil if version is empty or unparseable.
 func AdvisoryFindings(version string) []scanner.Finding {
+	loc := semverRE.FindStringSubmatchIndex(version)
 	v := semverRE.FindStringSubmatch(version)
 	if len(v) < 4 {
 		return nil
@@ -131,9 +132,15 @@ func AdvisoryFindings(version string) []scanner.Finding {
 	fmt.Sscanf(v[2], "%d", &minor)
 	fmt.Sscanf(v[3], "%d", &patch)
 
+	// Per semver, X.Y.Z-pre < X.Y.Z — a pre-release (rc, beta, alpha) of the
+	// fixed version is still vulnerable. Detect by a '-' immediately after the match.
+	matchEnd := loc[1]
+	isPreRelease := matchEnd < len(version) && version[matchEnd] == '-'
+
+	current := [3]int{major, minor, patch}
 	var findings []scanner.Finding
 	for _, a := range advisories {
-		if isVulnerable([3]int{major, minor, patch}, a.FixedSemver) {
+		if isVulnerable(current, a.FixedSemver) || (isPreRelease && current == a.FixedSemver) {
 			findings = append(findings, scanner.Finding{
 				CVEID:          a.CVEID,
 				Package:        "runc",

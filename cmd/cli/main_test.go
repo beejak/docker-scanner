@@ -393,13 +393,6 @@ func TestRunScan_offlineSkipsKEV(t *testing.T) {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func TestValidLXCName(t *testing.T) {
 	cases := []struct {
 		name string

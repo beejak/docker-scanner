@@ -124,14 +124,23 @@ func TestAdvisoryFindings_unparseable(t *testing.T) {
 }
 
 func TestAdvisoryFindings_prefixed(t *testing.T) {
-	// Versions like "v1.1.11" or "1.1.11-rc2" should still parse the semver core.
+	// "v" prefix should still parse correctly.
 	findings := AdvisoryFindings("v1.1.11")
 	if len(findings) != len(advisories) {
 		t.Errorf("expected %d findings for v1.1.11, got %d", len(advisories), len(findings))
 	}
+
+	// Per semver, X.Y.Z-pre < X.Y.Z: a pre-release of the fixed version is still vulnerable.
+	// 1.2.8-rc1 < 1.2.8 (fixed), so all three 1.2.8 advisories should fire.
+	advisories128 := 0
+	for _, a := range advisories {
+		if a.FixedSemver == [3]int{1, 2, 8} {
+			advisories128++
+		}
+	}
 	findings = AdvisoryFindings("1.2.8-rc1")
-	if len(findings) != 0 {
-		t.Errorf("expected 0 findings for 1.2.8-rc1, got %d", len(findings))
+	if len(findings) != advisories128 {
+		t.Errorf("expected %d findings for 1.2.8-rc1 (pre-release of fixed version), got %d", advisories128, len(findings))
 	}
 }
 
