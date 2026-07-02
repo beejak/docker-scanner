@@ -9,10 +9,10 @@ type trivyReport struct {
 }
 
 type trivyResult struct {
-	Target          string           `json:"Target"`
-	Class           string           `json:"Class"`
-	Type            string           `json:"Type"`
-	Vulnerabilities []trivyVuln      `json:"Vulnerabilities"`
+	Target          string      `json:"Target"`
+	Class           string      `json:"Class"`
+	Type            string      `json:"Type"`
+	Vulnerabilities []trivyVuln `json:"Vulnerabilities"`
 }
 
 type trivyVuln struct {

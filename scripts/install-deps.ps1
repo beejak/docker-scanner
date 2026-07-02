@@ -140,3 +140,4 @@ Write-Host "`n=== Done. You can now build and run ===" -ForegroundColor Green
 Write-Host "  go build -o scanner.exe ./cmd/cli"
 Write-Host "  .\scanner.exe scan --image alpine:latest --output-dir ./reports"
 Write-Host "Optional: Install Docker to use the scanner as a container (docker build -t scanner:latest .)."
+# renovated: 2026-07-02

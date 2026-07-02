@@ -83,15 +83,15 @@ type ScanRootfsInput struct {
 }
 
 type ScanResult struct {
-	Ok          bool                  `json:"ok"`
-	Target      string                `json:"target"`
-	Count       int                   `json:"findings_count"`
-	Summary     string                `json:"summary"`
-	Exploitable int                   `json:"exploitable_count"`
-	Findings    []scanFindingSummary  `json:"findings,omitempty"`
-	ReportDir   string                `json:"report_dir,omitempty"`
-	PolicyFail  bool                  `json:"policy_violated,omitempty"`
-	Error       string                `json:"error,omitempty"`
+	Ok          bool                 `json:"ok"`
+	Target      string               `json:"target"`
+	Count       int                  `json:"findings_count"`
+	Summary     string               `json:"summary"`
+	Exploitable int                  `json:"exploitable_count"`
+	Findings    []scanFindingSummary `json:"findings,omitempty"`
+	ReportDir   string               `json:"report_dir,omitempty"`
+	PolicyFail  bool                 `json:"policy_violated,omitempty"`
+	Error       string               `json:"error,omitempty"`
 }
 
 type scanFindingSummary struct {

@@ -107,3 +107,5 @@ Run scripts from repo root. We recommend doing this after you've saved or publis
 
 - **CSV** – `--format csv` (or add to `--format sarif,markdown,html,csv`) for spreadsheets.
 - **PDF** – The scanner does not generate PDF directly. Use “Print to PDF” in the browser on `report.html`, or convert the Markdown report with an external tool.
+
+<!-- renovated: 2026-07-02 -->

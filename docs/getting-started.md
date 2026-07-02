@@ -64,7 +64,7 @@ On Windows the binary will be `scanner.exe`. You can also use `go run ./cmd/cli`
    ```
    On Windows: `.\scanner.exe scan --image alpine:latest --output-dir .\reports`
 
-3. **Open the report**  
+3. **Open the report**
    Reports are written to the folder you gave (`./reports` or `/reports`). Open `report.md` (readable) or `report.html` in a browser. You also get `report.sarif` for Azure/GitHub Security. Reports include **Exploitable** (CISA KEV + OSV.dev), **Why severity**, and **Exploit info**; see [Vulnerability reports](vulnerability-reports.md).
 
    **Optional extras on your first scan:**

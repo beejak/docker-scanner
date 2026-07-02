@@ -38,3 +38,5 @@ Keep each entry short (under 10 lines). The file is for review “once all is sa
 - Do not remove or rewrite existing entries (only append).
 - Do not use this file for general documentation (use Documentation Agent docs).
 - Do not add entries for trivial edits (e.g. typos); only for meaningful tasks or decisions.
+
+<!-- renovated: 2026-07-02 -->

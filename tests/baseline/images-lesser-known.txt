@@ -53,3 +53,5 @@ eclipse-temurin:11-jre-alpine
 # Ubuntu older
 ubuntu:18.04
 ubuntu:20.04
+
+# renovated: 2026-07-02

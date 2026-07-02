@@ -15,3 +15,4 @@ REM Rate-limit friendly run (10 random images, 10s between pulls): set BASELINE_
 go run ./cmd/baseline
 echo Results in test-results\
 endlocal
+REM renovated: 2026-07-02

@@ -50,3 +50,5 @@ This file is the **single source of truth** for the Documentation Agent. When an
 ## Agent instruction
 
 **Documentation Agent:** The Cursor rule `documentation-agent.mdc` is **alwaysApply: true**, so the agent runs in context after any change. After any task that changes code, CLI, config, or behavior (including completion of a roadmap item), run through this checklist. Update every doc that is triggered (see table and triggers above). Keep Help and user-facing prose layman-friendly. Do not modify `docs/LESSONS-LEARNED.md` content (that is owned by the Lessons Learned Agent). The coder does not need to remember to update docs; the agent is responsible.
+
+<!-- renovated: 2026-07-02 -->

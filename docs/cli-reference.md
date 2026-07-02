@@ -83,3 +83,5 @@ scanner db update [--cache-dir <dir>]
 
 - Registry auth: use Docker login (`docker login <registry>`) or env vars supported by the Docker/containerd client. The scanner does not accept credentials via env; use the standard Docker config.
 - No secrets in config file or logs.
+
+<!-- renovated: 2026-07-02 -->

@@ -14,9 +14,9 @@ var cisaKEVURL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited
 type kevCatalog struct {
 	Vulnerabilities []struct {
 		CveID             string `json:"cveID"`
-		ShortDescription string `json:"shortDescription"`
+		ShortDescription  string `json:"shortDescription"`
 		VulnerabilityName string `json:"vulnerabilityName"`
-		KnownRansomware  string `json:"knownRansomwareCampaignUse"`
+		KnownRansomware   string `json:"knownRansomwareCampaignUse"`
 	} `json:"vulnerabilities"`
 }
 

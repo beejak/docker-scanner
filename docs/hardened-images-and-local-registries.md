@@ -112,3 +112,5 @@ When you introduce a new registry (e.g. your company’s Harbor or local registr
 | What constitutes a hardened image? | Minimal base, fewer packages, non-root, distroless/signed where possible, regularly updated. You define your own bar and which refs go in the list. |
 | Can we scan microservices alongside Docker images? | Yes, by scanning **one image per microservice**. Add all microservice image refs to the baseline list; the report is per image (per microservice). |
 | Can we pull from local repos if devs give access? | Yes. Use `docker login <registry>`, then add the registry’s image refs to a list and run the scanner/baseline as usual. Document the registry in [Image sources](image-sources.md). |
+
+<!-- renovated: 2026-07-02 -->

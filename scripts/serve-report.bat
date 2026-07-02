@@ -30,3 +30,4 @@ start "" "%REPORTS%\report.html"
 echo Report opened. Location: %REPORTS%\report.html
 endlocal
 exit /b 0
+REM renovated: 2026-07-02

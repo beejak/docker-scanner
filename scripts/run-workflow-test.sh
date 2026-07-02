@@ -78,3 +78,4 @@ done
 
 echo ""
 echo "Done. OK=$ok FAIL=$fail. Reports in $REPORTS_DIR (wf-*.md, wf-*.html)"
+# renovated: 2026-07-02

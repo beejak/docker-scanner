@@ -20,3 +20,4 @@ if (-not $trivy) {
 Write-Host "$(Get-Date -Format 'o') Updating Trivy DB..."
 & trivy image --download-db-only --cache-dir $CacheDir
 Write-Host "$(Get-Date -Format 'o') Trivy DB update done."
+# renovated: 2026-07-02

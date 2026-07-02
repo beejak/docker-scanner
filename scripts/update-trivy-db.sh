@@ -18,3 +18,4 @@ fi
 echo "$(date -Iseconds) Updating Trivy DB..."
 trivy image --download-db-only --cache-dir "$CACHE_DIR"
 echo "$(date -Iseconds) Trivy DB update done."
+# renovated: 2026-07-02

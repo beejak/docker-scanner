@@ -26,3 +26,5 @@ To use the scanner from an AI assistant (e.g. Cursor), run the MCP server and ad
 ## Publishing to the JetBrains Marketplace
 
 So the plugin appears when users search in **Settings → Plugins**: create a vendor on [JetBrains Marketplace](https://plugins.jetbrains.com/), build the plugin (Gradle → buildPlugin), then upload the ZIP from **Your account → Upload plugin**. Full steps: [IDE and MCP — Publishing the JetBrains plugin](../../docs/ide-and-mcp.md#publishing-the-jetbrains-plugin-to-the-marketplace).
+
+<!-- renovated: 2026-07-02 -->

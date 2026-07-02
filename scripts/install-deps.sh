@@ -161,3 +161,4 @@ go mod tidy
 echo ""
 echo "=== Done. You can now build and run: go build -o scanner ./cmd/cli && ./scanner scan --image alpine:latest --output-dir ./reports ==="
 echo "Optional: Install Docker to use the scanner as a container (docker build -t scanner:latest .)."
+# renovated: 2026-07-02

@@ -63,3 +63,5 @@ This keeps a single place to see where every image comes from and how to find mo
 
 - **Obscure list:** `images-obscure.txt` includes very old tags (e.g. Alpine 3.5, Debian jessie). Some may be removed by publishers over time; baseline will report FAIL for those. Replace or remove refs as needed.
 - **Auth:** For any registry, if pull is denied or forbidden, use `docker login <registry>` (or CI secrets) where you have access.
+
+<!-- renovated: 2026-07-02 -->

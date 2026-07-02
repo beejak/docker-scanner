@@ -117,11 +117,13 @@ func TestEnrich_kevMissMarksNotExploitable(t *testing.T) {
 // TestEnrich_ransomwareMentionedInExploitInfo verifies ransomware flag flows through.
 func TestEnrich_ransomwareMentionedInExploitInfo(t *testing.T) {
 	type vuln struct {
-		CveID           string `json:"cveID"`
+		CveID            string `json:"cveID"`
 		ShortDescription string `json:"shortDescription"`
 		KnownRansomware  string `json:"knownRansomwareCampaignUse"`
 	}
-	type catalog struct{ Vulnerabilities []vuln `json:"vulnerabilities"` }
+	type catalog struct {
+		Vulnerabilities []vuln `json:"vulnerabilities"`
+	}
 	payload, _ := json.Marshal(catalog{Vulnerabilities: []vuln{
 		{CveID: "CVE-2023-9999", ShortDescription: "Ransom vuln", KnownRansomware: "Known"},
 	}})

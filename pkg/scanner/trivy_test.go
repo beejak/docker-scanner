@@ -19,13 +19,13 @@ func Test_trivyVulnToFinding(t *testing.T) {
 	}
 	got := trivyVulnToFinding(v, "")
 	want := Finding{
-		CVEID:           "CVE-2020-1234",
-		Package:         "openssl",
-		CurrentVersion:  "1.1.1a",
-		FixedVersion:    "1.1.1b",
-		Severity:        "HIGH",
-		Title:           "OpenSSL issue",
-		Description:     "Some description",
+		CVEID:            "CVE-2020-1234",
+		Package:          "openssl",
+		CurrentVersion:   "1.1.1a",
+		FixedVersion:     "1.1.1b",
+		Severity:         "HIGH",
+		Title:            "OpenSSL issue",
+		Description:      "Some description",
 		RemediationLinks: []string{"https://example.com/cve", "https://ref1.com", "https://ref2.com"},
 	}
 	if got.CVEID != want.CVEID || got.Package != want.Package || got.CurrentVersion != want.CurrentVersion ||
@@ -54,9 +54,9 @@ func Test_trivyVulnToFinding_emptyPrimaryURL(t *testing.T) {
 func Test_trivyVulnToFinding_withPkgPathAndTarget(t *testing.T) {
 	v := trivyVuln{
 		VulnerabilityID: "CVE-2020-1",
-		PkgName:          "libfoo",
-		PkgPath:          "/lib/libfoo.so.1",
-		Severity:         "HIGH",
+		PkgName:         "libfoo",
+		PkgPath:         "/lib/libfoo.so.1",
+		Severity:        "HIGH",
 	}
 	got := trivyVulnToFinding(v, "alpine 3.10")
 	if got.FilePath != "/lib/libfoo.so.1" {
@@ -82,14 +82,14 @@ func Test_trivyMisconfigToFinding(t *testing.T) {
 	}
 	got := trivyMisconfigToFinding(m, "Dockerfile")
 	want := Finding{
-		CVEID:           "DS001",
-		Package:         "Dockerfile",
-		CurrentVersion:  "",
-		FixedVersion:    "",
-		Severity:        "HIGH",
-		Title:           "Run as non-root",
-		Description:     "Running as root is risky",
-		RemediationText: "Add USER directive",
+		CVEID:            "DS001",
+		Package:          "Dockerfile",
+		CurrentVersion:   "",
+		FixedVersion:     "",
+		Severity:         "HIGH",
+		Title:            "Run as non-root",
+		Description:      "Running as root is risky",
+		RemediationText:  "Add USER directive",
 		RemediationLinks: []string{"https://avd.aquasec.com/misconfig/ds001", "https://ref.com"},
 	}
 	if got.CVEID != want.CVEID || got.Package != want.Package || got.Severity != want.Severity ||

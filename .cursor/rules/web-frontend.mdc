@@ -19,3 +19,5 @@ You own: Optional scanner server (`cmd/server`) and Web UI (`web/`): serve UI, e
 
 - Implementing a second scanner or report generator; consume the same finding model and report generator as the CLI.
 - Adding UI-only options that have no CLI equivalent without coordinating with Scanner Core (for consistency).
+
+<!-- renovated: 2026-07-02 -->

@@ -146,3 +146,4 @@ if ($trivyOk) {
 }
 
 Write-Host "`n=== All done. ===" -ForegroundColor Green
+# renovated: 2026-07-02

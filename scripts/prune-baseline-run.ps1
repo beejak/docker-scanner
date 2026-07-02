@@ -64,3 +64,4 @@ foreach ($img in $present) {
     docker rmi $img 2>&1
 }
 Write-Host "Done."
+# renovated: 2026-07-02

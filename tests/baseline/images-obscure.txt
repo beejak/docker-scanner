@@ -63,3 +63,5 @@ public.ecr.aws/docker/library/debian:bullseye-slim
 # --- Red Hat UBI (older or alternate) — registry.access.redhat.com ---
 registry.access.redhat.com/ubi8/ubi-minimal:8.8
 registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+# renovated: 2026-07-02

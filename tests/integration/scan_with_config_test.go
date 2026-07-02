@@ -112,3 +112,5 @@ func splitTrim(s, sep string) []string {
 	}
 	return out
 }
+
+// renovated: 2026-07-02

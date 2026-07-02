@@ -254,3 +254,5 @@ See **ide/jetbrains/README.md** for more detail.
 | CLI / CI | Use **scanner** CLI or **baseline** as documented in [CLI reference](cli-reference.md) and [Baseline](baseline.md). |
 
 All of the above require the **scanner** (and for full scans, **Trivy**) to be available; see [Getting started](getting-started.md) and [Help](HELP.md).
+
+<!-- renovated: 2026-07-02 -->

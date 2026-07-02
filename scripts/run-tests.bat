@@ -22,3 +22,4 @@ if errorlevel 1 (
 )
 go test -tags=integration ./tests/integration/... -v -count=1
 endlocal
+REM renovated: 2026-07-02

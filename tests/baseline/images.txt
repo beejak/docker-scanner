@@ -152,3 +152,5 @@ cgr.dev/chainguard/go:latest
 registry.access.redhat.com/ubi8/ubi-minimal:latest
 registry.access.redhat.com/ubi9/ubi-minimal:latest
 registry.access.redhat.com/ubi8/ubi-micro:latest
+
+# renovated: 2026-07-02
