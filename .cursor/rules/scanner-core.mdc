@@ -22,3 +22,5 @@ You own: CLI (`cmd/cli`), scanner engine (`pkg/scanner`), remediation enricher (
 - Duplicating scan or remediation logic elsewhere (e.g. in server or UI). Server/UI call CLI or shared packages.
 - Putting secrets in logs or report output.
 - Changing the finding model without updating enricher and report in the same change.
+
+<!-- renovated: 2026-07-02 -->

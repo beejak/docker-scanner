@@ -46,3 +46,5 @@ Use `docs/DOCUMENTATION-AGENT.md` as the single source of truth. For each change
 - Do not update `docs/LESSONS-LEARNED.md` (owned by Lessons Learned Agent).
 - Do not invent flags or behavior that are not in the code.
 - Do not leave docs out of date after a feature is merged or a task is completed.
+
+<!-- renovated: 2026-07-02 -->

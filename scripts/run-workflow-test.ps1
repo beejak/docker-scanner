@@ -83,3 +83,4 @@ foreach ($img in $images) {
 }
 
 Write-Host "`nDone. OK=$ok FAIL=$fail. Reports in $reportsDir (wf-*.md, wf-*.html)"
+# renovated: 2026-07-02

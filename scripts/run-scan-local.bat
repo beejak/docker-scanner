@@ -18,3 +18,4 @@ echo Reports in %REPORTS%
 echo HTML report: %REPORTS%\report.html
 if /i "%~2"=="/publish" call "%~dp0serve-report.bat"
 endlocal
+REM renovated: 2026-07-02

@@ -24,3 +24,5 @@ To use the scanner from an AI assistant (e.g. Cursor), run the MCP server and ad
 ## Publishing to the VS Code Marketplace
 
 So the extension appears when users search “Docker Scanner” in Extensions: create a publisher on the [VS Code Marketplace](https://marketplace.visualstudio.com/), set `publisher` in `package.json` to your publisher ID, then run `npm i -g @vscode/vsce` and `vsce publish` (with a Personal Access Token from Azure DevOps). Full step-by-step: [IDE and MCP — Making the extension show up in search](../../docs/ide-and-mcp.md#publishing-the-vs-code-extension-to-the-marketplace).
+
+<!-- renovated: 2026-07-02 -->

@@ -19,3 +19,5 @@ You own: All user-facing documentation in `docs/` (getting started, CLI referenc
 
 - Inventing flags or behavior not implemented in the CLI (Scanner Core).
 - Long duplicate pipeline YAML in prose; use snippets from `ci/` and link.
+
+<!-- renovated: 2026-07-02 -->

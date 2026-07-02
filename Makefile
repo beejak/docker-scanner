@@ -93,3 +93,5 @@ docker-serve-stop:
 .PHONY: build build-server build-all scan deps serve \
         test-unit test-integration test setup-and-test \
         docker-build docker-scan docker-serve docker-serve-bg docker-serve-stop
+
+# renovated: 2026-07-02

@@ -124,3 +124,5 @@ trivy image --format json <your-image>
 
 - Use `--offline` when no network is available. The vulnerability DB must already be in the cache (run once with network, or use a pre-populated cache volume in CI).
 - In offline mode, remediation uses only Trivy data and embedded rules; no OSV or other network calls.
+
+<!-- renovated: 2026-07-02 -->

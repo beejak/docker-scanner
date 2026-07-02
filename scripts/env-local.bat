@@ -9,3 +9,4 @@ echo PATH updated for this window. Trivy and Go are available.
 echo You can now run: run-tests.bat  or  run-scan-local.bat
 cmd /k
 REM To just set PATH and exit (e.g. for PowerShell): remove "cmd /k" above and use "call env-local.bat" before other commands.
+REM renovated: 2026-07-02

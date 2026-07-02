@@ -11,3 +11,5 @@ output-name: report
 # Optional: fail the pipeline when findings match (CI)
 # fail-on-severity: CRITICAL,HIGH
 # fail-on-count: HIGH:5
+
+# renovated: 2026-07-02

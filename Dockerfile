@@ -69,3 +69,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # ─────────────────────────────────────────────────────────────────────────────
 ENTRYPOINT ["scanner"]
 CMD ["scan", "--help"]
+
+# renovated: 2026-07-02

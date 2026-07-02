@@ -20,3 +20,5 @@ registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 # --- Chainguard (cgr.dev) ---
 cgr.dev/chainguard/wolfi-base:latest
+
+# renovated: 2026-07-02

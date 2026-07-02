@@ -63,3 +63,5 @@ func TestScanRealImage(t *testing.T) {
 		t.Logf("RUN_INTEGRATION_STRICT=1: expected at least one finding for %s (DB may be empty or image updated)", integrationImage)
 	}
 }
+
+// renovated: 2026-07-02

@@ -8,3 +8,4 @@ mkdir "%REPORTS%" 2>nul
 docker run --rm -v "%REPORTS%":/reports scanner:latest scan --image %IMAGE% --output-dir /reports --format sarif,markdown
 echo Reports in %REPORTS%
 endlocal
+REM renovated: 2026-07-02

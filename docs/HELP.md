@@ -29,7 +29,7 @@ You can scan **container images** (Docker, Podman, containerd) with `--image <re
 
 **Docker Container Scanner** is a tool that **checks a container image for known security problems** (vulnerabilities). It gives you a **report** that lists what it found and **how to fix each one** (for example: “Upgrade this package from version X to version Y”).
 
-You can run it from the command line (CLI) or open the web page to get the exact command. It fits into your build pipeline (e.g. Azure, GitHub, GitLab, Jenkins) so every build can be checked automatically.
+You can run it from the command line (CLI) or open the web page to get the exact command. It fits into your build pipeline (e.g. GitHub Actions, GitLab CI, Azure DevOps, Jenkins, CircleCI, AWS CodeBuild, Google Cloud Build, Bitbucket Pipelines, Tekton) so every build can be checked automatically.
 
 ---
 

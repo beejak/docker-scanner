@@ -16,3 +16,5 @@ quay.io/prometheus/prometheus:latest
 
 # Red Hat UBI
 registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+# renovated: 2026-07-02

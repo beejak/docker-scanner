@@ -66,3 +66,5 @@ Auth: Server can sit behind a reverse proxy (OAuth, SSO). CLI uses env vars or D
 ---
 
 *Update this doc when adding server, UI, or new deployment options. Link from README and CONTRIBUTING.*
+
+<!-- renovated: 2026-07-02 -->

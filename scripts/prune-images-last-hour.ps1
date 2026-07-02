@@ -38,3 +38,4 @@ foreach ($id in $toRemove) {
     docker rmi -f $id 2>&1
 }
 Write-Host "Done."
+# renovated: 2026-07-02

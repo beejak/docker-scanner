@@ -19,3 +19,5 @@ You own: Pipeline templates and snippets in `ci/` (Azure, GitHub, GitLab, Jenkin
 
 - Changing CLI flags or behavior; that is Scanner Core. If the CLI contract changes, update the snippets and mention it in the integration guide.
 - Duplicating long prose that belongs in the main docs (e.g. "What is SARIF?"); link to `docs/` instead.
+
+<!-- renovated: 2026-07-02 -->

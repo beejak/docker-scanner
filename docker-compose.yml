@@ -75,3 +75,5 @@ services:
 volumes:
   trivy-cache:
     driver: local
+
+# renovated: 2026-07-02

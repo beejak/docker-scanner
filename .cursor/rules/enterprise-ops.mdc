@@ -19,3 +19,5 @@ You own: Policy (severity thresholds, `--fail-on`, fail-on-count), config file s
 
 - Putting secrets in config file or logs. Use env vars for registry auth and sensitive data.
 - Changing CLI flags or scan behavior in a way that breaks existing pipelines; prefer additive changes and document deprecations.
+
+<!-- renovated: 2026-07-02 -->
