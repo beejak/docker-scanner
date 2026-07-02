@@ -42,10 +42,10 @@ It depends how you want to run the scanner:
 
 **One script to install dependencies (Go + Trivy) on your machine:**
 
-- **Linux or macOS:** From the project folder, run:  
-  `./scripts/install-deps.sh`  
+- **Linux or macOS:** From the project folder, run:
+  `./scripts/install-deps.sh`
   (If you get “permission denied”, run: `chmod +x scripts/install-deps.sh` first.)
-- **Windows (PowerShell):** From the project folder, run:  
+- **Windows (PowerShell):** From the project folder, run:
   `.\scripts\install-deps.ps1`
 
 The script runs **in the background by default** so you can keep using your terminal. It writes a log file (`install-deps.log` in the project folder). To run it in the foreground and wait for it to finish, use:
@@ -61,15 +61,15 @@ After it finishes, you can build and run the scanner from source. If you prefer 
 
 If Go or Trivy were installed by the script to a folder under the project (e.g. `.go/go/bin` or `.trivy/...`), they might not be in your **PATH** in new terminals. PATH is the list of folders your system searches when you type a command.
 
-- **Windows:**  
-  - **Temporary (current session):** In PowerShell run  
-    `$env:Path = "C:\path\to\docker-scanner\.go\go\bin;C:\path\to\docker-scanner\.trivy\...;$env:Path"`  
-    (replace with the actual paths the install script printed.)  
+- **Windows:**
+  - **Temporary (current session):** In PowerShell run
+    `$env:Path = "C:\path\to\docker-scanner\.go\go\bin;C:\path\to\docker-scanner\.trivy\...;$env:Path"`
+    (replace with the actual paths the install script printed.)
   - **Permanent:** Open **System** → **Advanced system settings** → **Environment Variables**. Under “User variables” or “System variables”, select **Path** → **Edit** → **New**, and add the folder that contains `go.exe` and the folder that contains `trivy.exe`. OK out. New terminals will then find `go` and `trivy`.
 
-- **Linux / macOS:**  
-  Add to your shell config file (e.g. `~/.bashrc` or `~/.zshrc`):  
-  `export PATH="/path/to/docker-scanner/.go/go/bin:/path/to/docker-scanner/.trivy/...:$PATH"`  
+- **Linux / macOS:**
+  Add to your shell config file (e.g. `~/.bashrc` or `~/.zshrc`):
+  `export PATH="/path/to/docker-scanner/.go/go/bin:/path/to/docker-scanner/.trivy/...:$PATH"`
   (use the paths the install script printed.) Then run `source ~/.bashrc` (or open a new terminal).
 
 ---
@@ -78,10 +78,10 @@ If Go or Trivy were installed by the script to a folder under the project (e.g. 
 
 Trivy uses a **vulnerability database** that is updated regularly. For fresher results, update it about **once a day**:
 
-- **Linux/macOS:** Run `./scripts/update-trivy-db.sh` (from the project root). To run it automatically every day, add a **cron** job:  
-  `0 3 * * * /full/path/to/docker-scanner/scripts/update-trivy-db.sh`  
+- **Linux/macOS:** Run `./scripts/update-trivy-db.sh` (from the project root). To run it automatically every day, add a **cron** job:
+  `0 3 * * * /full/path/to/docker-scanner/scripts/update-trivy-db.sh`
   (e.g. run `crontab -e` and add that line; 3:00 AM daily.)
-- **Windows:** Run `.\scripts\update-trivy-db.ps1`. To run it automatically every day, use **Task Scheduler**: create a daily task that runs  
+- **Windows:** Run `.\scripts\update-trivy-db.ps1`. To run it automatically every day, use **Task Scheduler**: create a daily task that runs
   `powershell -File "C:\path\to\docker-scanner\scripts\update-trivy-db.ps1"`.
 
 ---
@@ -168,14 +168,14 @@ Then look at the **Critical** count. Even if none are marked exploitable yet, Cr
 
 ## What do I do first?
 
-1. **Choose how to run the scanner**  
-   - **Easiest:** Use Docker. Install Docker, then build the scanner image once and run it (see [Getting started](getting-started.md)).  
+1. **Choose how to run the scanner**
+   - **Easiest:** Use Docker. Install Docker, then build the scanner image once and run it (see [Getting started](getting-started.md)).
    - **From source:** Run the [install-deps script](#what-do-i-need-installed) for your OS, then build and run the scanner.
 
-2. **Run your first scan**  
+2. **Run your first scan**
    You give the scanner an image name (e.g. `alpine:latest` or `myapp:v1`). It looks up known vulnerabilities for the software inside that image and writes a report.
 
-3. **Open the report**  
+3. **Open the report**
    You get files like `report.md` (readable), `report.html`, and `report.sarif` (for Azure/GitHub Security). Open the Markdown or HTML file to see what was found and how to fix it.
 
 ---
@@ -190,11 +190,11 @@ A **baseline** run means scanning **many images at once** (e.g. 100+ or a list y
 
 If you ran a baseline with “pull before scan,” your machine will have downloaded many images. To free disk space:
 
-- **Remove images from a specific run:**  
+- **Remove images from a specific run:**
   `.\scripts\prune-baseline-run.ps1` (Windows) or use the latest CSV path. See [Baseline — After the run](baseline.md#after-the-run-results-and-cleanup).
-- **Remove images pulled in the last N hours:**  
+- **Remove images pulled in the last N hours:**
   `.\scripts\prune-images-last-hour.ps1 -Hours 6` (Windows). On Linux/macOS you can run the same logic or use `docker image prune -a`.
-- **Remove all unused images:**  
+- **Remove all unused images:**
   `docker image prune -a` (review the list before confirming).
 
 ---

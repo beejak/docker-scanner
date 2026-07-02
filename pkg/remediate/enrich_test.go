@@ -110,7 +110,7 @@ func TestEnrich(t *testing.T) {
 			want: []scanner.Finding{
 				{
 					CVEID: "CVE-2020-1234", Package: "openssl", Severity: "HIGH",
-					RemediationText: "Upgrade or patch openssl (currently ); no fixed version in DB",
+					RemediationText:  "Upgrade or patch openssl (currently ); no fixed version in DB",
 					RemediationLinks: []string{"https://nvd.nist.gov/vuln/detail/CVE-2020-1234", "https://avd.aquasec.com/nvd/cve-2020-1234"},
 				},
 			},
@@ -124,7 +124,7 @@ func TestEnrich(t *testing.T) {
 			want: []scanner.Finding{
 				{
 					CVEID: "DS002", Package: "Dockerfile", Severity: "MEDIUM",
-					RemediationText: "Upgrade or patch Dockerfile (currently ); no fixed version in DB",
+					RemediationText:  "Upgrade or patch Dockerfile (currently ); no fixed version in DB",
 					RemediationLinks: []string{"https://avd.aquasec.com/misconfig/ds002"},
 				},
 			},

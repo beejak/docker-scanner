@@ -2,7 +2,8 @@
 // Serves the frontend at / and exposes a streaming SSE scan endpoint at /api/scan.
 //
 // Usage: go run ./cmd/server          (default: port 8080)
-//        go run ./cmd/server -port 9090
+//
+//	go run ./cmd/server -port 9090
 package main
 
 import (
@@ -79,11 +80,11 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 
 // sseEvent is the JSON payload sent over SSE.
 type sseEvent struct {
-	Type     string           `json:"type"`               // "status" | "complete" | "error"
-	Message  string           `json:"message,omitempty"`  // status text shown in UI
+	Type     string            `json:"type"`               // "status" | "complete" | "error"
+	Message  string            `json:"message,omitempty"`  // status text shown in UI
 	Findings []scanner.Finding `json:"findings,omitempty"` // only on "complete"
-	Summary  *scanSummary     `json:"summary,omitempty"`  // only on "complete"
-	Elapsed  string           `json:"elapsed,omitempty"`  // human duration, only on "complete"
+	Summary  *scanSummary      `json:"summary,omitempty"`  // only on "complete"
+	Elapsed  string            `json:"elapsed,omitempty"`  // human duration, only on "complete"
 }
 
 type scanSummary struct {

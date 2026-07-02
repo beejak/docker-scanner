@@ -12,9 +12,9 @@ import (
 
 // Options holds output options (formats, output dir, report base name).
 type Options struct {
-	Formats       []string // "sarif", "markdown", "html", "csv"
-	OutputDir     string
-	ReportBaseName string   // Base name for report files (e.g. "report" or "report-20060102-150405"). Default "report".
+	Formats        []string // "sarif", "markdown", "html", "csv"
+	OutputDir      string
+	ReportBaseName string // Base name for report files (e.g. "report" or "report-20060102-150405"). Default "report".
 }
 
 // Generate writes SARIF, Markdown, HTML, and/or CSV from enriched findings to OutputDir.
@@ -51,13 +51,13 @@ func Generate(findings []scanner.Finding, opts Options) error {
 
 // SARIF 2.1 minimal structure for Azure/GitHub Security tab.
 type sarifDoc struct {
-	Schema  string  `json:"$schema"`
-	Version string  `json:"version"`
+	Schema  string     `json:"$schema"`
+	Version string     `json:"version"`
 	Runs    []sarifRun `json:"runs"`
 }
 
 type sarifRun struct {
-	Tool    sarifTool    `json:"tool"`
+	Tool    sarifTool     `json:"tool"`
 	Results []sarifResult `json:"results"`
 }
 
@@ -66,17 +66,17 @@ type sarifTool struct {
 }
 
 type sarifDriver struct {
-	Name            string       `json:"name"`
-	Version         string       `json:"version"`
-	InformationURI  string       `json:"informationUri"`
-	Rules           []sarifRule  `json:"rules"`
+	Name           string      `json:"name"`
+	Version        string      `json:"version"`
+	InformationURI string      `json:"informationUri"`
+	Rules          []sarifRule `json:"rules"`
 }
 
 type sarifRule struct {
-	ID               string        `json:"id"`
-	Name             string        `json:"name"`
-	ShortDescription sarifMessage  `json:"shortDescription"`
-	Help             sarifHelp     `json:"help,omitempty"`
+	ID               string       `json:"id"`
+	Name             string       `json:"name"`
+	ShortDescription sarifMessage `json:"shortDescription"`
+	Help             sarifHelp    `json:"help,omitempty"`
 }
 
 type sarifHelp struct {
@@ -123,10 +123,10 @@ func writeSARIF(findings []scanner.Finding, path string) error {
 				helpText += "\n\n" + strings.Join(f.RemediationLinks, "\n")
 			}
 			rules = append(rules, sarifRule{
-				ID:   ruleID,
-				Name: f.Title,
+				ID:               ruleID,
+				Name:             f.Title,
 				ShortDescription: sarifMessage{Text: f.Title},
-				Help: sarifHelp{Text: helpText},
+				Help:             sarifHelp{Text: helpText},
 			})
 		}
 		level := severityToSarifLevel(f.Severity)

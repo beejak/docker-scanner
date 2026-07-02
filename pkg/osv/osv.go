@@ -84,10 +84,10 @@ type osvQueryResponse struct {
 }
 
 type osvVuln struct {
-	ID       string     `json:"id"`
-	Aliases  []string   `json:"aliases"`
-	Summary  string     `json:"summary"`
-	Severity []osvSev   `json:"severity"`
+	ID       string   `json:"id"`
+	Aliases  []string `json:"aliases"`
+	Summary  string   `json:"summary"`
+	Severity []osvSev `json:"severity"`
 }
 
 type osvSev struct {

@@ -11,12 +11,12 @@ import (
 // Config holds default values for scan (severity, format, output-dir, etc.).
 // Empty values mean "use CLI default". No secrets; use for paths and options only.
 type Config struct {
-	Severity        string `yaml:"severity"`         // Comma-separated: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN
-	Format          string `yaml:"format"`          // Comma-separated: sarif, markdown, html, csv
-	OutputDir       string `yaml:"output-dir"`       // Report output directory
-	OutputName      string `yaml:"output-name"`      // Base name for report files
-	CacheDir        string `yaml:"cache-dir"`        // Trivy cache directory
-	FailOnSeverity  string `yaml:"fail-on-severity"` // Comma-separated severities that cause exit 1
+	Severity       string `yaml:"severity"`         // Comma-separated: CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN
+	Format         string `yaml:"format"`           // Comma-separated: sarif, markdown, html, csv
+	OutputDir      string `yaml:"output-dir"`       // Report output directory
+	OutputName     string `yaml:"output-name"`      // Base name for report files
+	CacheDir       string `yaml:"cache-dir"`        // Trivy cache directory
+	FailOnSeverity string `yaml:"fail-on-severity"` // Comma-separated severities that cause exit 1
 	FailOnCount    string `yaml:"fail-on-count"`    // SEVERITY:N (e.g. HIGH:5)
 }
 

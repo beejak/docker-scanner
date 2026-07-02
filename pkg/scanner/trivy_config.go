@@ -9,9 +9,9 @@ type trivyConfigReport struct {
 }
 
 type trivyConfigResult struct {
-	Target          string              `json:"Target"`
-	Class           string              `json:"Class"`
-	Type            string              `json:"Type"`
+	Target            string           `json:"Target"`
+	Class             string           `json:"Class"`
+	Type              string           `json:"Type"`
 	Misconfigurations []trivyMisconfig `json:"Misconfigurations"`
 }
 

@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker-scanner/scanner/pkg/report"
 	"github.com/docker-scanner/scanner/pkg/remediate"
+	"github.com/docker-scanner/scanner/pkg/report"
 	"github.com/docker-scanner/scanner/pkg/scanner"
 )
 
@@ -105,10 +105,10 @@ func main() {
 	}
 
 	var (
-		mu           sync.Mutex
-		results      []result
-		allFindings  []report.ImageFinding
-		work         = make(chan string, len(images))
+		mu          sync.Mutex
+		results     []result
+		allFindings []report.ImageFinding
+		work        = make(chan string, len(images))
 	)
 
 	for _, img := range images {
@@ -361,17 +361,17 @@ func loadImages(path string) ([]string, error) {
 
 // dashboardData is embedded in HTML for Chart.js; all labels use image name/path.
 type dashboardData struct {
-	Images          []imageRow `json:"images"`           // image name/path, findings count, duration_sec, status
-	SeverityCounts  map[string]int `json:"severity"`     // CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN
+	Images            []imageRow     `json:"images"`      // image name/path, findings count, duration_sec, status
+	SeverityCounts    map[string]int `json:"severity"`    // CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN
 	ExploitableCounts map[string]int `json:"exploitable"` // yes, no, unknown
-	ReportTime      string    `json:"reportTime"`
+	ReportTime        string         `json:"reportTime"`
 }
 
 type imageRow struct {
-	Image   string  `json:"image"`
-	Findings int    `json:"findings"`
+	Image       string  `json:"image"`
+	Findings    int     `json:"findings"`
 	DurationSec float64 `json:"duration_sec"`
-	Status  string  `json:"status"`
+	Status      string  `json:"status"`
 }
 
 func writeDashboardHTML(results []result, allFindings []report.ImageFinding, outPath, reportTime string) error {
@@ -379,10 +379,10 @@ func writeDashboardHTML(results []result, allFindings []report.ImageFinding, out
 	imgMap := make(map[string]*imageRow)
 	for _, r := range results {
 		imgMap[r.Image] = &imageRow{
-			Image:        r.Image,
-			Findings:     r.Findings,
+			Image:       r.Image,
+			Findings:    r.Findings,
 			DurationSec: r.Duration.Seconds(),
-			Status:       r.Status,
+			Status:      r.Status,
 		}
 	}
 	var images []imageRow
