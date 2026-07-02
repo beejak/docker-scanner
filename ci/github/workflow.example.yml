@@ -2,7 +2,7 @@
 #
 # What this does:
 #   1. Builds your application image
-#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   2. Pulls the scanner image from GHCR (ghcr.io/beejak/docker-scanner:latest)
 #   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
 #   4. Uploads SARIF to GitHub Security tab (Code Scanning alerts)
 #   5. Publishes all reports + SBOM as a pipeline artifact
@@ -43,12 +43,13 @@ jobs:
       - name: Build application image
         run: docker build -t ${{ env.IMAGE_NAME }} .
 
-      # Build the scanner image once; reuse across steps.
-      - name: Build scanner image
-        run: docker build -t ${{ env.SCANNER_IMAGE }} .
-        working-directory: ${{ github.workspace }}
-        # If the scanner image is published to a registry, pull instead of build:
-        # run: docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest
+      # Pull the published scanner image from GHCR. No scanner source required.
+      - name: Pull scanner image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ghcr.io/beejak/docker-scanner:latest
+          docker tag ghcr.io/beejak/docker-scanner:latest ${{ env.SCANNER_IMAGE }}
+        # To build from source instead: docker build -t ${{ env.SCANNER_IMAGE }} /path/to/docker-scanner
 
       - name: Create reports directory
         run: mkdir -p reports

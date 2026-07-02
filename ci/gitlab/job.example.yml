@@ -2,7 +2,7 @@
 #
 # What this does:
 #   1. Builds your application image
-#   2. Builds the scanner image (Trivy + CLI + Web UI server)
+#   2. Pulls the scanner image from GHCR (ghcr.io/beejak/docker-scanner:latest)
 #   3. Runs a full scan: vulnerability detection, runc advisory, SBOM generation
 #   4. Publishes SARIF to the GitLab Security dashboard (Container Scanning report)
 #   5. Stores all reports + SBOM as job artifacts (30-day retention)
@@ -38,8 +38,10 @@ container-scan:
   needs: [build]
   script:
     - docker pull "$IMAGE_NAME"
-    # Build scanner image from this repo (or pull a pre-published one).
-    - docker build -t "$SCANNER_IMAGE" .
+    # Pull the published scanner image from GHCR. No scanner source required.
+    # To build from source: docker build -t "$SCANNER_IMAGE" /path/to/docker-scanner
+    - docker pull ghcr.io/beejak/docker-scanner:latest
+    - docker tag ghcr.io/beejak/docker-scanner:latest "$SCANNER_IMAGE"
     - mkdir -p reports
     # Full scan: all formats + runc advisory + SBOM + fail-on policy.
     - |

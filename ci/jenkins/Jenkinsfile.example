@@ -32,11 +32,12 @@ pipeline {
       }
     }
 
-    stage('Build scanner image') {
+    stage('Pull scanner image') {
       steps {
-        // Alternatively pull a pre-published scanner image:
-        // sh 'docker pull ghcr.io/beejak/docker-scanner:latest && docker tag ... scanner:latest'
-        sh 'docker build -t ${SCANNER_IMAGE} .'
+        // Pull the published scanner image from GHCR. No scanner source required.
+        // To build from source: sh 'docker build -t ${SCANNER_IMAGE} /path/to/docker-scanner'
+        sh 'docker pull ghcr.io/beejak/docker-scanner:latest'
+        sh 'docker tag ghcr.io/beejak/docker-scanner:latest ${SCANNER_IMAGE}'
       }
     }
 
